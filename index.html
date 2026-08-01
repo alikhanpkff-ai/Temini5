@@ -837,13 +837,13 @@
             clearInterval(state.timerInterval);
         }
 
-        // Structural System Personas
+        // Structural System Personas (UPDATED)
         const AGENT_SYSTEM_PROMPTS = {
             1: `You are the Architect Agent. Your objective is to design the functional specification, data schema structure, and layout design profiles for complex single-file web interfaces. Rely on responsive Tailwind utility frameworks, FontAwesome graphical vectors, and native vanilla ES6. Ensure your design blueprint contains zero wrapper code blocks. Output purely programmatic execution structures.`,
             2: `You are the Critical Inspector/Auditor. Your task is to critique the target codebase. Highlight rendering bugs, accessibility vulnerabilities, performance limitations, structural state issues, memory leak traces, and responsive design flaws, particularly on mobile viewports. Output your diagnosis as a concise, high-impact checklist within a structured markdown block.`,
-            3: `You are the Logic Repair Agent. Your objective is to resolve logic issues highlighted by the Auditor. You must carefully modify variables, secure state routines, eliminate scope errors, and preserve state logic across DOM updates. Provide ONLY the updated, runnable single-file HTML codebase with no additional conversation. Do not truncate the code; return it in full.`,
-            4: `You are the Polish & Experience Enhancer. Inject refined visual design details: micro-interactions, smooth CSS animations, dark/light contrast support, responsive touch-gesture event listeners, beautiful validation feedback triggers, and robust asset fallbacks. Provide ONLY the complete updated source code without pre/post notes or conversation wrappers.`,
-            5: `You are the Master Compiler. Clean all dev notes, secure asset paths, check syntax parameters, optimize performance profiles, and format script loops cleanly. Return ONLY the finalized production-grade single-file HTML code, without any wrapping conversation or explanation outside of valid HTML formatting.`
+            3: `You are the Logic Repair Agent. Your objective is to resolve logic issues highlighted by the Auditor. You must carefully modify variables, secure state routines, eliminate scope errors, and preserve state logic across DOM updates. CRITICAL: Provide ONLY the updated, runnable single-file HTML codebase. NEVER truncate the code. NEVER use placeholders like "<!-- rest of code -->". You must return the file in full from <!DOCTYPE html> to </html>.`,
+            4: `You are the Polish & Experience Enhancer. Inject refined visual design details: micro-interactions, smooth CSS animations, dark/light contrast support, responsive touch-gesture event listeners, beautiful validation feedback triggers, and robust asset fallbacks. CRITICAL: Provide ONLY the complete updated source code. NEVER truncate. Return the entire document from start to finish.`,
+            5: `You are the Master Compiler. Clean all dev notes, secure asset paths, check syntax parameters, optimize performance profiles, and format script loops cleanly. CRITICAL: Return ONLY the finalized production-grade single-file HTML code. You must output the entire, complete file ending with </html>. Do not truncate. No conversational wrappers.`
         };
 
         // Main Synthesis Pipeline Loop
@@ -858,8 +858,8 @@
             }
 
             const promptSpec = elements.promptInput.value.trim();
-            if (!promptSpec) {
-                triggerToast("Please input application specifications", "warn");
+            if (!promptSpec || promptSpec.length < 10) {
+                triggerToast("Please provide a detailed specification (minimum 10 characters).", "warn");
                 return;
             }
 
@@ -1092,7 +1092,7 @@
             }
         }
 
-        // Safe code extraction heuristic
+        // Safe code extraction heuristic (UPDATED)
         function sanitizeMarkdownCodeBlocks(rawText) {
             let processed = rawText.trim();
             const codeBlockPattern = /```(?:html|xml|javascript|css)?([\s\S]*?)```/gi;
@@ -1108,11 +1108,18 @@
                 return largestBlock.trim();
             }
             
-            // Fallback: If no code blocks are found, check if it starts/ends with html tag wrappers
-            if (processed.toLowerCase().includes("<html") && processed.toLowerCase().includes("</html>")) {
-                const startIndex = processed.toLowerCase().indexOf("<html");
-                const endIndex = processed.toLowerCase().lastIndexOf("</html>") + 7;
-                return processed.substring(startIndex, endIndex);
+            // Fallback: Smart HTML extraction even if </html> is missing
+            const startIndex = processed.toLowerCase().indexOf("<html");
+            if (startIndex !== -1) {
+                const endIndex = processed.toLowerCase().lastIndexOf("</html>");
+                if (endIndex !== -1) {
+                    // Perfect extraction
+                    return processed.substring(startIndex, endIndex + 7);
+                } else {
+                    // The code was cut off by the AI! 
+                    // Return everything from <html to the end so it doesn't render conversational text
+                    return processed.substring(startIndex) + "\n<!-- WARNING: Code was truncated by AI limits -->";
+                }
             }
             
             return processed;
