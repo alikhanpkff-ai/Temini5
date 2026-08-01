@@ -717,7 +717,7 @@
 
         const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-        // High-resilient HTTP request handler with backoff and payload validation
+        // High-resilient HTTP request handler with backoff, payload validation, and AUTO-CONTINUE functionality
         async function robustAPIRequest(promptObj, systemInstructionText, retryCount = 0) {
             const maxRetries = 6;
             const baseDelay = 4000;
@@ -775,7 +775,7 @@
                     throw new Error(`Safety Engine Intervened: Target context blocked because of structural parameters: ${data.promptFeedback.blockReason}`);
                 }
 
-                if (data.candidates && data.candidates[0].finishReason && data.candidates[0].finishReason !== "STOP") {
+                if (data.candidates && data.candidates[0].finishReason && data.candidates[0].finishReason !== "STOP" && data.candidates[0].finishReason !== "MAX_TOKENS") {
                     const reason = data.candidates[0].finishReason;
                     if (reason === "SAFETY") {
                         throw new Error("Safety Engine Intervened: Output generation blocked due to safety parameters.");
@@ -786,7 +786,27 @@
                     throw new Error("Null response payload generated. Refine constraints and try again.");
                 }
 
-                return data.candidates[0].content.parts[0].text;
+                let generatedText = data.candidates[0].content.parts[0].text;
+                let finishReason = data.candidates[0].finishReason;
+
+                // PROGRAMMATIC AUTO-CONTINUE: Fix token limits natively
+                if (finishReason === "MAX_TOKENS" || finishReason === "FINISH_REASON_UNSPECIFIED") {
+                    pushSystemLog("Auto-Continue Triggered", "Token limit hit mid-generation. Automatically fetching continuation...", "amber-400");
+                    
+                    const contextTail = generatedText.slice(-250);
+                    const continuationPrompt = `Your previous response was cut off due to maximum token limits. Do NOT start over. Continue writing the code EXACTLY where you left off. Do not wrap your response in introductory text or new markdown blocks if you were in the middle of code. Here is the tail end of your previous output for context:\n\n${contextTail}`;
+                    
+                    try {
+                        const nextPart = await robustAPIRequest(continuationPrompt, systemInstructionText, 0);
+                        // Clean up potential markdown wrappers the AI might try to insert at the start of the new block
+                        const cleanNextPart = nextPart.replace(/^```(html|xml|javascript|css)?\n?/i, '');
+                        generatedText += cleanNextPart;
+                    } catch (e) {
+                        pushSystemLog("Continuation Failed", "Could not fetch the rest of the truncated code.", "rose-400");
+                    }
+                }
+
+                return generatedText;
 
             } catch (err) {
                 if (err.name === 'AbortError' || err.message === "Execution canceled.") {
@@ -837,13 +857,13 @@
             clearInterval(state.timerInterval);
         }
 
-        // Structural System Personas (UPDATED)
+        // Structural System Personas (UPDATED WITH TOKEN EFFICIENCY RULES)
         const AGENT_SYSTEM_PROMPTS = {
-            1: `You are the Architect Agent. Your objective is to design the functional specification, data schema structure, and layout design profiles for complex single-file web interfaces. Rely on responsive Tailwind utility frameworks, FontAwesome graphical vectors, and native vanilla ES6. Ensure your design blueprint contains zero wrapper code blocks. Output purely programmatic execution structures.`,
+            1: `You are the Architect Agent. Your objective is to design the functional specification, data schema structure, and layout design profiles for complex single-file web interfaces. Rely on responsive Tailwind utility frameworks, FontAwesome graphical vectors, and native vanilla ES6. Ensure your design blueprint contains zero wrapper code blocks. CRITICAL FOR TOKEN EFFICIENCY: Never hardcode repetitive UI elements. Design blueprints that use a single HTML template and JavaScript mock data arrays to render lists/grids dynamically.`,
             2: `You are the Critical Inspector/Auditor. Your task is to critique the target codebase. Highlight rendering bugs, accessibility vulnerabilities, performance limitations, structural state issues, memory leak traces, and responsive design flaws, particularly on mobile viewports. Output your diagnosis as a concise, high-impact checklist within a structured markdown block.`,
             3: `You are the Logic Repair Agent. Your objective is to resolve logic issues highlighted by the Auditor. You must carefully modify variables, secure state routines, eliminate scope errors, and preserve state logic across DOM updates. CRITICAL: Provide ONLY the updated, runnable single-file HTML codebase. NEVER truncate the code. NEVER use placeholders like "<!-- rest of code -->". You must return the file in full from <!DOCTYPE html> to </html>.`,
             4: `You are the Polish & Experience Enhancer. Inject refined visual design details: micro-interactions, smooth CSS animations, dark/light contrast support, responsive touch-gesture event listeners, beautiful validation feedback triggers, and robust asset fallbacks. CRITICAL: Provide ONLY the complete updated source code. NEVER truncate. Return the entire document from start to finish.`,
-            5: `You are the Master Compiler. Clean all dev notes, secure asset paths, check syntax parameters, optimize performance profiles, and format script loops cleanly. CRITICAL: Return ONLY the finalized production-grade single-file HTML code. You must output the entire, complete file ending with </html>. Do not truncate. No conversational wrappers.`
+            5: `You are the Master Compiler. Clean all dev notes, secure asset paths, check syntax parameters, optimize performance profiles, and format script loops cleanly. CRITICAL: Return ONLY the finalized production-grade single-file HTML code. You must output the entire, complete file ending with </html>. Do not truncate. CRITICAL FOR TOKEN EFFICIENCY: Ensure you are using JS loops/maps to render repetitive elements instead of hardcoding HTML blocks.`
         };
 
         // Main Synthesis Pipeline Loop
@@ -1092,7 +1112,7 @@
             }
         }
 
-        // Safe code extraction heuristic (UPDATED)
+        // Safe code extraction heuristic
         function sanitizeMarkdownCodeBlocks(rawText) {
             let processed = rawText.trim();
             const codeBlockPattern = /```(?:html|xml|javascript|css)?([\s\S]*?)```/gi;
