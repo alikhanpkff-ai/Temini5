@@ -2,97 +2,274 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinite AI Builder - Autonomous Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Autonomous AI Studio & Live App Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-900 text-white h-screen flex overflow-hidden font-sans">
-
-    <!-- LEFT: File Tree Panel -->
-    <div class="w-64 bg-gray-950 border-r border-gray-800 flex flex-col">
-        <div class="p-4 border-b border-gray-800">
-            <h3 class="font-bold text-gray-400 uppercase text-xs tracking-wider">Workspace Files</h3>
-        </div>
-        <ul id="fileTree" class="p-2 space-y-1 text-sm text-gray-300 flex-1 overflow-y-auto">
-            <!-- Dynamically populated files appear here -->
-        </ul>
-    </div>
-
-    <!-- CENTER: Real-Time Preview Panel -->
-    <div class="flex-1 flex flex-col bg-white">
-        <div class="bg-gray-800 p-3 text-xs text-gray-400 flex items-center justify-between shadow-md z-10">
-            <span class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                Live Preview Canvas
-            </span>
-            <button onclick="renderLivePreview()" class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-white transition-colors">Force Refresh</button>
-        </div>
-        <!-- The live preview window -->
-        <iframe id="previewCanvas" class="w-full flex-1 border-none bg-gray-50"></iframe>
-    </div>
-
-    <!-- RIGHT: AI Controller & Auto-Build Panel -->
-    <div class="w-96 bg-gray-950 border-l border-gray-800 flex flex-col">
-        <div class="p-4 border-b border-gray-800 flex justify-between items-center">
-            <h3 class="font-bold text-sm text-blue-400">AI Architect Console</h3>
-            <!-- AUTO BUILD TOGGLE -->
-            <button id="autoBuildBtn" onclick="toggleAutoBuild()" class="bg-red-900/50 text-red-400 border border-red-700 hover:bg-red-800 hover:text-white text-xs px-3 py-1 rounded-full transition-all font-bold tracking-wide">
-                Auto-Build: OFF
-            </button>
-        </div>
-        
-        <div class="p-4 flex-1 flex flex-col gap-2">
-            <label class="text-xs text-gray-500 uppercase tracking-wider">Current File Inspector</label>
-            <textarea id="codeInspector" class="w-full flex-1 bg-gray-900 text-green-400 p-3 font-mono text-xs rounded border border-gray-700 focus:outline-none focus:border-blue-500 transition-colors resize-none shadow-inner" readonly></textarea>
-        </div>
-        
-        <div class="p-4 bg-gray-900 border-t border-gray-800">
-            <label class="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Next Command</label>
-            <input id="aiPrompt" type="text" placeholder="e.g., Add a dark mode toggle..." class="w-full bg-gray-950 text-white p-3 text-sm rounded border border-gray-700 focus:outline-none focus:border-blue-500 shadow-inner mb-3">
-            
-            <button id="manualTriggerBtn" onclick="triggerAiGeneration()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 p-3 rounded text-sm font-semibold tracking-wide hover:opacity-90 shadow-lg transition-opacity flex justify-center items-center gap-2">
-                Inject Component
-            </button>
-        </div>
-    </div>
-
     <script>
-        // 1. Core State
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { 950: '#090a0f', 900: '#11131c', 800: '#1a1d2d', 700: '#272b40' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-dark-950 text-gray-100 h-[100dvh] flex flex-col md:flex-row overflow-hidden font-sans select-none">
+
+    <!-- MOBILE TOP BAR -->
+    <header class="md:hidden flex items-center justify-between bg-dark-900 border-b border-dark-700 px-4 py-3 z-30">
+        <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+            <h1 class="font-bold text-sm tracking-wide text-white">AI Studio Builder</h1>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="switchTab('preview')" id="mobTabPreview" class="bg-dark-700 text-xs px-3 py-1.5 rounded-lg text-emerald-400 font-medium">Canvas</button>
+            <button onclick="switchTab('files')" id="mobTabFiles" class="bg-dark-800 text-xs px-3 py-1.5 rounded-lg text-gray-400 font-medium">Files</button>
+            <button onclick="switchTab('ai')" id="mobTabAi" class="bg-dark-800 text-xs px-3 py-1.5 rounded-lg text-gray-400 font-medium">Console</button>
+        </div>
+    </header>
+
+    <!-- LEFT PANEL: FILE TREE & CONFIG MANAGER -->
+    <aside id="panelFiles" class="w-full md:w-72 bg-dark-900 border-r border-dark-700 flex flex-col h-full md:flex z-20">
+        <div class="p-4 border-b border-dark-700 flex items-center justify-between hidden md:flex">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="font-bold text-xs uppercase tracking-wider text-gray-400">Workspace Files</span>
+            </div>
+            <button onclick="openSettingsModal()" class="text-xs bg-dark-800 hover:bg-dark-700 text-blue-400 border border-blue-900/50 px-2 py-1 rounded transition-colors flex items-center gap-1">
+                ⚙️ Config API Key
+            </button>
+        </div>
+        
+        <!-- Mobile Key Button shortcut -->
+        <div class="p-3 bg-dark-950 border-b border-dark-700 flex justify-between items-center md:hidden">
+            <span class="text-xs text-gray-400">API Key Status: <strong id="mobKeyStatus" class="text-amber-400">Not Set</strong></span>
+            <button onclick="openSettingsModal()" class="text-xs bg-blue-600 text-white px-3 py-1 rounded font-medium">Set Key</button>
+        </div>
+
+        <ul id="fileTree" class="p-3 space-y-1 text-sm text-gray-300 flex-1 overflow-y-auto">
+            <!-- Dynamically populated files -->
+        </ul>
+        
+        <div class="p-3 border-t border-dark-700 bg-dark-950 text-[11px] text-gray-500 flex justify-between items-center">
+            <span>Engine: Gemini API</span>
+            <span id="activeModelDisplay" class="text-emerald-400">gemini-2.5-flash</span>
+        </div>
+    </aside>
+
+    <!-- CENTER PANEL: LIVE PREVIEW CANVAS -->
+    <main id="panelPreview" class="flex-1 flex flex-col bg-white h-full relative">
+        <div class="bg-dark-800 text-gray-300 px-4 py-2.5 text-xs flex items-center justify-between border-b border-dark-700 z-10 shadow-md">
+            <div class="flex items-center gap-3">
+                <span class="font-semibold text-white tracking-wide">Live Preview Sandbox</span>
+                <div class="hidden sm:flex items-center bg-dark-900 rounded p-0.5 border border-dark-700">
+                    <button onclick="setViewport('desktop')" id="vpDesktop" class="px-2 py-0.5 rounded text-[10px] bg-dark-700 text-white font-bold transition-all">Desktop</button>
+                    <button onclick="setViewport('mobile')" id="vpMobile" class="px-2 py-0.5 rounded text-[10px] text-gray-400 hover:text-white transition-all">Mobile</button>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="renderLivePreview()" class="bg-dark-700 hover:bg-dark-600 text-white px-3 py-1 rounded text-xs transition-colors shadow">🔄 Refresh Canvas</button>
+            </div>
+        </div>
+        
+        <!-- Frame Container -->
+        <div class="flex-1 flex justify-center items-center bg-gray-100 overflow-hidden p-0 md:p-4">
+            <div id="canvasWrapper" class="w-full h-full md:w-full md:h-full bg-white transition-all duration-300 shadow-none md:shadow-2xl md:rounded-lg overflow-hidden border border-gray-200 flex flex-col">
+                <iframe id="previewCanvas" class="w-full flex-1 border-none bg-white"></iframe>
+            </div>
+        </div>
+    </main>
+
+    <!-- RIGHT PANEL: AI CONSOLE & CODE INSPECTOR -->
+    <aside id="panelAi" class="w-full md:w-[420px] bg-dark-900 border-l border-dark-700 flex flex-col h-full hidden md:flex z-20">
+        <div class="p-4 border-b border-dark-700 flex justify-between items-center bg-dark-950">
+            <div>
+                <h3 class="font-bold text-sm text-blue-400 flex items-center gap-2">
+                    🤖 Autonomous AI Controller
+                </h3>
+                <p class="text-[11px] text-gray-400">Self-building agentic generation engine</p>
+            </div>
+            <!-- AUTO BUILD TOGGLE -->
+            <button id="autoBuildBtn" onclick="toggleAutoBuild()" class="bg-red-950/80 text-red-400 border border-red-800 hover:bg-red-900 text-xs px-3 py-1.5 rounded-full transition-all font-bold tracking-wide shadow-inner flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-red-500"></span> Auto-Build: OFF
+            </button>
+        </div>
+        
+        <!-- Code Inspector Section -->
+        <div class="p-4 flex-1 flex flex-col gap-2 overflow-hidden bg-dark-900">
+            <div class="flex justify-between items-center">
+                <label id="currentFileLabel" class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Inspector: index.html</label>
+                <span id="tokenStatus" class="text-[10px] text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-800/50">Token Safe Mode</span>
+            </div>
+            <textarea id="codeInspector" class="w-full flex-1 bg-dark-950 text-emerald-400 p-3 font-mono text-xs rounded-lg border border-dark-700 focus:outline-none focus:border-blue-500 transition-colors resize-none shadow-inner" readonly></textarea>
+        </div>
+        
+        <!-- Prompt & Control Box -->
+        <div class="p-4 bg-dark-950 border-t border-dark-700">
+            <label class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 block font-semibold">Command Prompt</label>
+            <textarea id="aiPrompt" rows="2" placeholder="e.g., Build a complete modern SaaS landing page with dark mode pricing cards and interactive checkout simulation..." class="w-full bg-dark-900 text-white p-3 text-sm rounded-lg border border-dark-700 focus:outline-none focus:border-blue-500 shadow-inner mb-3 resize-none"></textarea>
+            
+            <button id="manualTriggerBtn" onclick="triggerAiGeneration()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-3 rounded-lg text-sm font-semibold tracking-wide shadow-lg transition-all flex justify-center items-center gap-2">
+                ✨ Generate & Inject Component
+            </button>
+        </div>
+    </aside>
+
+    <!-- API KEY & CONFIGURATION MODAL -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg text-white flex items-center gap-2">🔑 API Key Configuration</h3>
+                <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-white text-sm bg-dark-800 w-8 h-8 rounded-full flex items-center justify-center">✕</button>
+            </div>
+            <p class="text-xs text-gray-400 mb-4 leading-relaxed">
+                Enter your official Gemini API Key from Google AI Studio. Your key is safely stored locally in your browser session and is sent directly to Google's API endpoints.
+            </p>
+            <div class="space-y-3 mb-6">
+                <div>
+                    <label class="text-xs text-gray-300 font-medium block mb-1">Gemini API Key</label>
+                    <input id="apiKeyInput" type="password" placeholder="AIzaSy..." class="w-full bg-dark-950 border border-dark-700 text-white text-sm rounded-lg p-3 focus:outline-none focus:border-blue-500 font-mono">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-300 font-medium block mb-1">Model Selection</label>
+                    <select id="modelSelect" class="w-full bg-dark-950 border border-dark-700 text-white text-sm rounded-lg p-3 focus:outline-none focus:border-blue-500">
+                        <option value="gemini-2.5-flash">gemini-2.5-flash (Recommended Fast Engine)</option>
+                        <option value="gemini-2.5-pro">gemini-2.5-pro (Advanced Reasoning Architect)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="saveApiKey()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg text-sm font-bold shadow-lg transition-all">Save Credentials</button>
+                <button onclick="closeSettingsModal()" class="bg-dark-800 hover:bg-dark-700 text-gray-300 px-4 py-3 rounded-lg text-sm font-medium">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPLICATION SCRIPT ENGINE -->
+    <script>
+        // --- 1. APPLICATION STATE & VIRTUAL FILE SYSTEM ---
         let isAutoBuildActive = false;
         let isGenerating = false;
+        let activeFile = "index.html";
         
+        let userApiKey = localStorage.getItem('gemini_user_api_key') || "";
+        let selectedModel = localStorage.getItem('gemini_selected_model') || "gemini-2.5-flash";
+
         let virtualFileSystem = {
-            "index.html": "<!DOCTYPE html><html><head><script src='https://cdn.tailwindcss.com'><\/script></head><body class='bg-gray-100 min-h-screen'><div id='header-target'></div><main id='main-target' class='p-8 text-center'><h1 class='text-4xl font-bold text-gray-800 mb-4'>Waiting for AI...</h1><p class='text-gray-500'>Give the AI a prompt to start building.</p></main><div id='footer-target'></div><script src='app.js'><\/script></body></html>",
-            "app.js": "console.log('App Initialized');"
+            "index.html": "<!DOCTYPE html>\n<html lang='en'>\n<head>\n    <meta charset='UTF-8'>\n    <script src='https://cdn.tailwindcss.com'><\/script>\n    <link rel='stylesheet' href='style.css'>\n</head>\n<body class='bg-gray-50 min-h-screen text-gray-800 flex flex-col'>\n    <div id='header-target'></div>\n    <main id='main-target' class='flex-1 p-6 md:p-12 text-center max-w-4xl mx-auto'>\n        <div class='bg-white rounded-2xl shadow-xl p-8 border border-gray-100 my-auto'>\n            <h1 class='text-3xl md:text-5xl font-black text-gray-900 mb-4 tracking-tight'>Fully Functional AI App Builder</h1>\n            <p class='text-gray-600 text-base md:text-lg mb-8'>Your workspace is online. Enter your Gemini API key in settings, configure a prompt, and let the autonomous engine build out your production-ready interface.</p>\n            <button onclick='alert(\"Interactive component ready!\")' class='bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg transition-all'>Get Started Now</button>\n        </div>\n    </main>\n    <div id='footer-target'></div>\n    <script src='app.js'><\/script>\n</body>\n</html>",
+            "style.css": "/* Custom Application Styles */\nbody {\n    font-family: system-ui, -apple-system, sans-serif;\n}",
+            "app.js": "// Client application interactions\nconsole.log('App client runtime active.');",
+            "components/Header.html": "<header class='bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm'>\n    <div class='font-black text-xl text-blue-600 tracking-tight'>SaaSPlatform</div>\n    <nav class='hidden md:flex gap-6 text-sm font-medium text-gray-600'>\n        <a href='#' class='hover:text-blue-600'>Overview</a>\n        <a href='#' class='hover:text-blue-600'>Solutions</a>\n        <a href='#' class='hover:text-blue-600'>Pricing</a>\n    </nav>\n    <button class='bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold shadow'>Sign In</button>\n</header>",
+            "components/Footer.html": "<footer class='bg-white border-t border-gray-200 py-6 text-center text-xs text-gray-500 mt-auto'>\n    &copy; 2026 Autonomous App Engine. All rights reserved.\n</footer>"
         };
 
-        // 2. UI Updates
+        // --- 2. INITIALIZATION & UI ROUTING ---
+        window.addEventListener('DOMContentLoaded', () => {
+            updateFileTreeUI();
+            renderLivePreview();
+            checkApiKeyStatus();
+            document.getElementById('codeInspector').value = virtualFileSystem[activeFile];
+            document.getElementById('modelSelect').value = selectedModel;
+            document.getElementById('activeModelDisplay').innerText = selectedModel;
+        });
+
+        function checkApiKeyStatus() {
+            const statusEl = document.getElementById('mobKeyStatus');
+            if (userApiKey) {
+                statusEl.innerText = "Configured ✓";
+                statusEl.className = "text-emerald-400 font-bold";
+            } else {
+                statusEl.innerText = "Not Set ⚠️";
+                statusEl.className = "text-amber-400 font-bold";
+            }
+        }
+
+        function switchTab(tab) {
+            const pFiles = document.getElementById('panelFiles');
+            const pPreview = document.getElementById('panelPreview');
+            const pAi = document.getElementById('panelAi');
+            
+            const bPrev = document.getElementById('mobTabPreview');
+            const bFiles = document.getElementById('mobTabFiles');
+            const bAi = document.getElementById('mobTabAi');
+
+            // Reset tabs
+            pFiles.classList.add('hidden'); pFiles.classList.remove('flex');
+            pPreview.classList.add('hidden'); pPreview.classList.remove('flex');
+            pAi.classList.add('hidden'); pAi.classList.remove('flex');
+
+            bPrev.className = "bg-dark-800 text-xs px-3 py-1.5 rounded-lg text-gray-400 font-medium";
+            bFiles.className = "bg-dark-800 text-xs px-3 py-1.5 rounded-lg text-gray-400 font-medium";
+            bAi.className = "bg-dark-800 text-xs px-3 py-1.5 rounded-lg text-gray-400 font-medium";
+
+            if (tab === 'preview') {
+                pPreview.classList.remove('hidden'); pPreview.classList.add('flex');
+                bPrev.className = "bg-dark-700 text-xs px-3 py-1.5 rounded-lg text-emerald-400 font-medium";
+            } else if (tab === 'files') {
+                pFiles.classList.remove('hidden'); pFiles.classList.add('flex');
+                bFiles.className = "bg-dark-700 text-xs px-3 py-1.5 rounded-lg text-blue-400 font-medium";
+            } else if (tab === 'ai') {
+                pAi.classList.remove('hidden'); pAi.classList.add('flex');
+                bAi.className = "bg-dark-700 text-xs px-3 py-1.5 rounded-lg text-blue-400 font-medium";
+            }
+        }
+
+        function setViewport(mode) {
+            const wrapper = document.getElementById('canvasWrapper');
+            const btnDesk = document.getElementById('vpDesktop');
+            const btnMob = document.getElementById('vpMobile');
+
+            if (mode === 'mobile') {
+                wrapper.className = "w-[390px] h-[844px] bg-white transition-all duration-300 shadow-2xl rounded-3xl overflow-hidden border-[8px] border-dark-800 flex flex-col my-auto";
+                btnMob.className = "px-2 py-0.5 rounded text-[10px] bg-dark-700 text-white font-bold transition-all";
+                btnDesk.className = "px-2 py-0.5 rounded text-[10px] text-gray-400 hover:text-white transition-all";
+            } else {
+                wrapper.className = "w-full h-full bg-white transition-all duration-300 shadow-none md:shadow-2xl md:rounded-lg overflow-hidden border border-gray-200 flex flex-col";
+                btnDesk.className = "px-2 py-0.5 rounded text-[10px] bg-dark-700 text-white font-bold transition-all";
+                btnMob.className = "px-2 py-0.5 rounded text-[10px] text-gray-400 hover:text-white transition-all";
+            }
+        }
+
+        // --- 3. FILE MANAGEMENT & UI UPDATES ---
         function updateFileTreeUI() {
             const treeEl = document.getElementById('fileTree');
             treeEl.innerHTML = '';
             Object.keys(virtualFileSystem).forEach(filename => {
                 let li = document.createElement('li');
-                li.className = "cursor-pointer text-gray-400 hover:text-white p-2 rounded hover:bg-gray-800 flex items-center transition-colors";
-                li.innerHTML = `📄 <span class="ml-2 truncate">${filename}</span>`;
+                let isSelected = filename === activeFile;
+                li.className = `cursor-pointer px-3 py-2 rounded-lg flex items-center justify-between transition-colors ${isSelected ? 'bg-dark-800 text-blue-400 font-semibold' : 'text-gray-400 hover:text-white hover:bg-dark-800/50'}`;
+                li.innerHTML = `<span class="truncate">📄 ${filename}</span>`;
                 li.onclick = () => {
+                    activeFile = filename;
                     document.getElementById('codeInspector').value = virtualFileSystem[filename];
+                    document.getElementById('currentFileLabel').innerText = `Inspector: ${filename}`;
+                    updateFileTreeUI();
+                    if (window.innerWidth < 768) switchTab('ai');
                 };
                 treeEl.appendChild(li);
             });
         }
 
-        // 3. The Compiler
         function renderLivePreview() {
             const iframe = document.getElementById('previewCanvas');
-            let compiledHTML = virtualFileSystem["index.html"];
+            let compiledHTML = virtualFileSystem["index.html"] || "";
             
-            // Inject components dynamically if they exist
-            if(virtualFileSystem["components/Header.html"]) compiledHTML = compiledHTML.replace("<div id='header-target'></div>", virtualFileSystem["components/Header.html"]);
-            if(virtualFileSystem["components/Hero.html"]) compiledHTML = compiledHTML.replace("<main id='main-target'", "<main style='display:none;' id='hidden-target'").replace("</main>", "</main>" + virtualFileSystem["components/Hero.html"]);
-            if(virtualFileSystem["components/Footer.html"]) compiledHTML = compiledHTML.replace("<div id='footer-target'></div>", virtualFileSystem["components/Footer.html"]);
-            
-            // Inject JS
-            compiledHTML = compiledHTML.replace("<script src='app.js'><\/script>", `<script>${virtualFileSystem["app.js"]}<\/script>`);
+            // Bundle assets/components directly into the iframe document stream
+            if (virtualFileSystem["style.css"]) {
+                compiledHTML = compiledHTML.replace("<link rel='stylesheet' href='style.css'>", `<style>${virtualFileSystem["style.css"]}</style>`);
+            }
+            if (virtualFileSystem["components/Header.html"]) {
+                compiledHTML = compiledHTML.replace("<div id='header-target'></div>", virtualFileSystem["components/Header.html"]);
+            }
+            if (virtualFileSystem["components/Footer.html"]) {
+                compiledHTML = compiledHTML.replace("<div id='footer-target'></div>", virtualFileSystem["components/Footer.html"]);
+            }
+            if (virtualFileSystem["app.js"]) {
+                compiledHTML = compiledHTML.replace("<script src='app.js'><\/script>", `<script>${virtualFileSystem["app.js"]}<\/script>`);
+            }
 
             const doc = iframe.contentWindow.document;
             doc.open();
@@ -100,122 +277,140 @@
             doc.close();
         }
 
-        // 4. Autonomous Controls
+        // --- 4. API SETTINGS MODAL HANDLING ---
+        function openSettingsModal() {
+            document.getElementById('apiKeyInput').value = userApiKey;
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            userApiKey = document.getElementById('apiKeyInput').value.trim();
+            selectedModel = document.getElementById('modelSelect').value;
+            
+            localStorage.setItem('gemini_user_api_key', userApiKey);
+            localStorage.setItem('gemini_selected_model', selectedModel);
+            
+            document.getElementById('activeModelDisplay').innerText = selectedModel;
+            checkApiKeyStatus();
+            closeSettingsModal();
+            alert("API Credentials securely saved!");
+        }
+
+        // --- 5. AUTONOMOUS CONTROL ENGINE ---
         function toggleAutoBuild() {
             const btn = document.getElementById('autoBuildBtn');
             isAutoBuildActive = !isAutoBuildActive;
             
             if (isAutoBuildActive) {
-                btn.className = "bg-green-900/50 text-green-400 border border-green-500 hover:bg-green-800 hover:text-white text-xs px-3 py-1 rounded-full transition-all font-bold tracking-wide animate-pulse";
-                btn.innerText = "Auto-Build: ON";
+                if (!userApiKey) {
+                    alert("Please configure your Gemini API Key in settings first!");
+                    isAutoBuildActive = false;
+                    return;
+                }
+                btn.className = "bg-emerald-950 text-emerald-400 border border-emerald-600 hover:bg-emerald-900 text-xs px-3 py-1.5 rounded-full transition-all font-bold tracking-wide shadow-inner flex items-center gap-1.5 animate-pulse";
+                btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Auto-Build: ON`;
                 
-                // If the user hasn't typed anything, kick it off with a default command
                 if (!document.getElementById('aiPrompt').value) {
-                    document.getElementById('aiPrompt').value = "Initialize core layout with a modern navbar and hero section.";
+                    document.getElementById('aiPrompt').value = "Build a fully operational feature section with interactive metric cards.";
                 }
                 triggerAiGeneration();
             } else {
-                btn.className = "bg-red-900/50 text-red-400 border border-red-700 hover:bg-red-800 hover:text-white text-xs px-3 py-1 rounded-full transition-all font-bold tracking-wide";
-                btn.innerText = "Auto-Build: OFF";
+                btn.className = "bg-red-950/80 text-red-400 border border-red-800 hover:bg-red-900 text-xs px-3 py-1.5 rounded-full transition-all font-bold tracking-wide shadow-inner flex items-center gap-1.5";
+                btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> Auto-Build: OFF`;
             }
         }
 
-        // 5. AI Interaction Engine
+        // --- 6. REAL GEMINI API CALL INTEGRATION ---
         async function triggerAiGeneration() {
             if (isGenerating) return;
             
+            if (!userApiKey) {
+                openSettingsModal();
+                return;
+            }
+
             const promptInput = document.getElementById('aiPrompt');
-            const promptText = promptInput.value;
-            if (!promptText) return;
+            const userPromptText = promptInput.value.trim();
+            if (!userPromptText) return;
 
             isGenerating = true;
-            document.getElementById('manualTriggerBtn').innerText = "Generating...";
-            document.getElementById('manualTriggerBtn').classList.add('opacity-50', 'cursor-not-allowed');
+            const triggerBtn = document.getElementById('manualTriggerBtn');
+            triggerBtn.innerText = "⏳ Generating Real-Time Code...";
+            triggerBtn.classList.add('opacity-50', 'cursor-not-allowed');
 
-            // ====================================================================
-            // ⚠️ REPLACE THIS BLOCK WITH YOUR ACTUAL GEMINI API FETCH REQUEST ⚠️
-            // ====================================================================
-            
-            // Simulating network delay and API response for demonstration
-            const mockApiResponse = await simulateBackendApiCall(promptText);
-            
-            // ====================================================================
+            // Construct strict system instructions ensuring token safety & raw JSON output
+            const systemInstruction = `You are a Senior Full-Stack AI Code Architect. The user is running a live app builder. 
+Your job is to update or create code modules inside the virtual workspace without hitting output limits.
+You MUST output ONLY a valid raw JSON object matching this exact schema, with no markdown code blocks surrounding it:
+{
+  "target_file": "components/Features.html" (or "index.html", "style.css", "app.js", etc.),
+  "action": "CREATE" or "UPDATE",
+  "code": "complete working HTML/Tailwind/JS code block here",
+  "next_recommended_step": "describe the next feature or enhancement to build"
+}`;
 
-            handleAiResponseChunk(mockApiResponse);
-            
-            isGenerating = false;
-            document.getElementById('manualTriggerBtn').innerText = "Inject Component";
-            document.getElementById('manualTriggerBtn').classList.remove('opacity-50', 'cursor-not-allowed');
-        }
-
-        function handleAiResponseChunk(jsonStringResponse) {
-            try {
-                const updateData = JSON.parse(jsonStringResponse);
-                
-                // Write to virtual file system
-                virtualFileSystem[updateData.target_file] = updateData.code;
-                
-                // Update UI instantly
-                document.getElementById('codeInspector').value = updateData.code;
-                document.getElementById('aiPrompt').value = ""; // Clear input
-                updateFileTreeUI();
-                renderLivePreview();
-                
-                // AUTONOMOUS LOOP TRIGGER
-                if (isAutoBuildActive && updateData.next_recommended_step) {
-                    document.getElementById('aiPrompt').value = updateData.next_recommended_step;
-                    console.log(`Auto-Build queueing next step: ${updateData.next_recommended_step}`);
-                    
-                    // Wait 2 seconds so the user can see the change, then fire again
-                    setTimeout(() => {
-                        if (isAutoBuildActive) triggerAiGeneration();
-                    }, 2000);
+            const payload = {
+                contents: [
+                    { role: "user", parts: [{ text: systemInstruction + "\n\nCurrent Workspace Files State:\n" + JSON.stringify(virtualFileSystem) + "\n\nUser Request: " + userPromptText }] }
+                ],
+                generationConfig: {
+                    responseMimeType: "application/json"
                 }
+            };
+
+            try {
+                const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${userApiKey}`;
                 
-            } catch (e) {
-                console.error("Failed to parse clean component JSON data: ", e);
-                // If it fails, stop auto-build to prevent infinite error loops
+                const response = await fetch(apiEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const candidateText = data.candidates[0].content.parts[0].text;
+                
+                // Parse AI response payload
+                const updateData = JSON.parse(candidateText);
+                
+                // Apply update to virtual file system
+                if (updateData.target_file && updateData.code) {
+                    virtualFileSystem[updateData.target_file] = updateData.code;
+                    activeFile = updateData.target_file;
+                    
+                    document.getElementById('codeInspector').value = updateData.code;
+                    document.getElementById('currentFileLabel').innerText = `Inspector: ${activeFile}`;
+                    promptInput.value = "";
+                    
+                    updateFileTreeUI();
+                    renderLivePreview();
+                    
+                    // Handle autonomous loop queue
+                    if (isAutoBuildActive && updateData.next_recommended_step) {
+                        promptInput.value = updateData.next_recommended_step;
+                        setTimeout(() => {
+                            if (isAutoBuildActive) triggerAiGeneration();
+                        }, 2500);
+                    }
+                }
+            } catch (error) {
+                console.error("Gemini API Generation Error:", error);
+                alert("Generation error: " + error.message + ". Please verify your API Key and network.");
                 if (isAutoBuildActive) toggleAutoBuild();
+            } finally {
+                isGenerating = false;
+                triggerBtn.innerText = "✨ Generate & Inject Component";
+                triggerBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         }
-
-        // --- Mock API Function just to prove the auto-loop works out of the box ---
-        function simulateBackendApiCall(prompt) {
-            return new Promise(resolve => {
-                setTimeout(() => {
-                    let mockResponse = {};
-                    
-                    if (prompt.includes("layout") || prompt.includes("navbar")) {
-                        mockResponse = {
-                            target_file: "components/Header.html",
-                            action: "CREATE",
-                            code: "<nav class='bg-indigo-600 p-4 shadow-lg text-white flex justify-between items-center'><div class='font-bold text-xl tracking-tight'>AI App</div><div class='flex gap-4'><a href='#' class='hover:text-indigo-200'>Home</a><a href='#' class='hover:text-indigo-200'>Features</a></div></nav>",
-                            next_recommended_step: "Now I will build a visually striking Hero component to capture user attention."
-                        };
-                    } else if (prompt.includes("Hero")) {
-                        mockResponse = {
-                            target_file: "components/Hero.html",
-                            action: "CREATE",
-                            code: "<div class='bg-gradient-to-br from-indigo-900 to-purple-900 py-20 px-8 text-center text-white'><h1 class='text-5xl font-extrabold mb-6'>Built entirely by AI.</h1><p class='text-xl text-indigo-200 mb-8 max-w-2xl mx-auto'>This platform is continuously self-improving through an autonomous loop.</p><button class='bg-white text-indigo-900 px-8 py-3 rounded-full font-bold shadow-xl hover:scale-105 transition-transform'>Get Started</button></div>",
-                            next_recommended_step: "Next, I will add a Footer component to complete the page structure."
-                        };
-                    } else {
-                        mockResponse = {
-                            target_file: "components/Footer.html",
-                            action: "CREATE",
-                            code: "<footer class='bg-gray-950 p-6 text-center text-gray-500 text-sm mt-auto w-full'>&copy; 2026 AI Autonomous Builder. All rights reserved.</footer>",
-                            next_recommended_step: "The base layout is complete. Let's add some JavaScript logic to animate the Hero section."
-                        };
-                    }
-                    resolve(JSON.stringify(mockResponse));
-                }, 1500); // 1.5 second simulated API delay
-            });
-        }
-
-        // Initialize UI on load
-        updateFileTreeUI();
-        renderLivePreview();
-        document.getElementById('codeInspector').value = virtualFileSystem["index.html"];
     </script>
 </body>
 </html>
