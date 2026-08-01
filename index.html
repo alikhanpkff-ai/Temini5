@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Gemini 5-Stage Assembly Line</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --success: #22c55e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg-color); color: var(--text); padding: 12px; display: flex; flex-direction: column; min-height: 100vh; }
+    
+    header { text-align: center; margin-bottom: 12px; padding-top: 8px; }
+    header h1 { font-size: 1.3rem; color: var(--accent); }
+    header p { font-size: 0.8rem; color: var(--text-muted); }
+
+    details { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; padding: 10px; }
+    summary { font-weight: bold; font-size: 0.9rem; cursor: pointer; color: var(--accent); }
+    
+    .key-group { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .key-input-box { display: flex; flex-direction: column; gap: 4px; }
+    .key-input-box label { font-size: 0.75rem; color: var(--text-muted); }
+    
+    input, textarea {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      -webkit-appearance: none;
+    }
+
+    .fill-btn {
+      background: var(--border);
+      color: var(--text);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      margin-top: 6px;
+      cursor: pointer;
+    }
+
+    #chat-container { flex: 1; display: flex; flex-direction: column; gap: 12px; padding-bottom: 90px; }
+    
+    .msg-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 0.88rem;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      position: relative;
+    }
+    
+    .msg-card h4 { color: var(--accent); margin-bottom: 6px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .msg-card.final { border: 2px solid var(--accent); background: #0c4a6e; }
+
+    .copy-code-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #334155;
+      color: #f8fafc;
+      border: none;
+      padding: 4px 8px;
+      font-size: 0.7rem;
+      border-radius: 4px;
+      cursor: pointer;
+      display: none;
+    }
+    .msg-card:hover .copy-code-btn, .msg-card.final .copy-code-btn {
+      display: block;
+    }
+    .copy-code-btn.copied {
+      background: var(--success);
+      color: #0f172a;
+      font-weight: bold;
+    }
+
+    .input-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #0f172a;
+      border-top: 1px solid var(--border);
+      padding: 10px 12px 24px 12px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-bar textarea { height: 50px; resize: none; }
+    .send-btn {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      font-weight: bold;
+      padding: 0 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .send-btn:disabled { opacity: 0.5; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>⚡ 5-Gemini Pipeline</h1>
+    <p>Sequential Multi-Agent Refinement</p>
+  </header>
+
+  <details id="settings-panel">
+    <summary>⚙️ Configure 5 Gemini Keys & Agents</summary>
+    <button class="fill-btn" onclick="copyKey1ToAll()">Duplicate Key #1 to all 5 slots</button>
+    
+    <div class="key-group">
+      <div class="key-input-box">
+        <label>1. Architect (Initial Draft)</label>
+        <input type="password" id="key1" placeholder="Gemini API Key 1" />
+      </div>
+      <div class="key-input-box">
+        <label>2. Critic (Find Bugs & Flaws)</label>
+        <input type="password" id="key2" placeholder="Gemini API Key 2" />
+      </div>
+      <div class="key-input-box">
+        <label>3. Fixer (Refine & Resolve Issues)</label>
+        <input type="password" id="key3" placeholder="Gemini API Key 3" />
+      </div>
+      <div class="key-input-box">
+        <label>4. Enhancer (Add Advanced Features)</label>
+        <input type="password" id="key4" placeholder="Gemini API Key 4" />
+      </div>
+      <div class="key-input-box">
+        <label>5. Polisher (Final Master Output)</label>
+        <input type="password" id="key5" placeholder="Gemini API Key 5" />
+      </div>
+    </div>
+  </details>
+
+  <div id="chat-container"></div>
+
+  <div class="input-bar">
+    <textarea id="taskInput" placeholder="Enter task (e.g., 'Build a complete Python budget tracker script')..."></textarea>
+    <button class="send-btn" id="runBtn" onclick="startPipeline()">Send</button>
+  </div>
+
+  <script>
+    const AGENTS = [
+      { id: 1, name: "Stage 1: Architect", prompt: "You are Stage 1. Create a complete first draft or solution for this task:" },
+      { id: 2, name: "Stage 2: Critical Auditor", prompt: "You are Stage 2. Critically evaluate this draft for bugs, errors, edge cases, and missing features. Re-write it to fix every issue:" },
+      { id: 3, name: "Stage 3: Logic Fixer", prompt: "You are Stage 3. Optimize the structure, fix remaining issues, and ensure extreme accuracy:" },
+      { id: 4, name: "Stage 4: Feature Enhancer", prompt: "You are Stage 4. Polish the UX, formatting, and completeness. Make it production-grade:" },
+      { id: 5, name: "Stage 5: Master Synthesis", prompt: "You are Stage 5 (Final Polish). Provide the absolute final, flawless version. Trim meta-talk and output ONLY the master product:" }
+    ];
+
+    function copyKey1ToAll() {
+      const k1 = document.getElementById('key1').value;
+      for (let i = 2; i <= 5; i++) {
+        document.getElementById(`key${i}`).value = k1;
+      }
+    }
+
+    async function callGemini(apiKey, systemInstruction, inputContent) {
+      const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent";
+      
+      const payload = {
+        contents: [{
+          parts: [{ text: `${systemInstruction}
+
+--- INPUT DATA ---
+${inputContent}` }]
+        }]
+      };
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey 
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const errMsg = errData?.error?.message || "Ensure your API Key is valid.";
+        throw new Error(`Error (${res.status}): ${errMsg}`);
+      }
+      
+      const data = await res.json();
+      return data.candidates[0].content.parts[0].text;
+    }
+
+    function createMsgCard(title, text, isFinal = false) {
+      const container = document.getElementById("chat-container");
+      const card = document.createElement("div");
+      card.className = `msg-card ${isFinal ? 'final' : ''}`;
+      
+      const contentId = 'content_' + Math.random().toString(36.substring(2, 9));
+      
+      card.innerHTML = `
+        <h4>${title}</h4>
+        <button class="copy-code-btn" onclick="copyCardContent(this, '${contentId}')">📋 Copy Code</button>
+        <div class="body-content" id="${contentId}">${text}</div>
+      `;
+      container.appendChild(card);
+      window.scrollTo(0, document.body.scrollHeight);
+      return card;
+    }
+
+    function copyCardContent(btn, elementId) {
+      const textToCopy = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const originalText = btn.innerText;
+        btn.innerText = "✅ Copied!";
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.classList.remove("copied");
+        }, 2000);
+      }).catch(err => {
+        alert("Failed to copy: " + err);
+      });
+    }
+
+    async function startPipeline() {
+      const taskText = document.getElementById("taskInput").value.trim();
+      if (!taskText) return alert("Please type a task first!");
+
+      const keys = [
+        document.getElementById("key1").value.trim(),
+        document.getElementById("key2").value.trim(),
+        document.getElementById("key3").value.trim(),
+        document.getElementById("key4").value.trim(),
+        document.getElementById("key5").value.trim()
+      ];
+
+      if (!keys[0]) return alert("Please enter at least Key #1!");
+
+      document.getElementById("settings-panel").open = false;
+      
+      const runBtn = document.getElementById("runBtn");
+      runBtn.disabled = true;
+      document.getElementById("taskInput").value = "";
+
+      createMsgCard("👤 Your Task", taskText);
+
+      let currentPass = taskText;
+
+      try {
+        for (let i = 0; i < 5; i++) {
+          const agent = AGENTS[i];
+          const apiKey = keys[i] || keys[0]; 
+          
+          const statusCard = createMsgCard(agent.name, "⏳ Thinking & refining...");
+          
+          const result = await callGemini(apiKey, agent.prompt, currentPass);
+          
+          statusCard.querySelector(".body-content").textContent = result;
+          if (i === 4) statusCard.classList.add("final");
+          
+          currentPass = result; 
+        }
+      } catch (err) {
+        createMsgCard("⚠️ Pipeline Error", err.message);
+      } finally {
+        runBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
