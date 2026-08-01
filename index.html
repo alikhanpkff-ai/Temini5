@@ -1,1176 +1,221 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Autonomous Deep-Thinking Gemini Coder</title>
-    
-    <!-- Tailwind CSS for production-grade rapid layouts -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite AI Builder - Autonomous Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        slate: {
-                            950: '#020617',
-                        },
-                        brand: {
-                            50: '#f5f3ff',
-                            100: '#ede9fe',
-                            500: '#8b5cf6',
-                            600: '#7c3aed',
-                            700: '#6d28d9',
-                            950: '#090514',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <!-- FontAwesome Pro alternative icons & Google Fonts -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- External libraries for sanitization, rendering & execution security -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
-    
-    <style>
-        body {
-            -webkit-tap-highlight-color: transparent;
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-        }
-        
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace !important;
-        }
-
-        /* Custom scrollbar configurations */
-        ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #090514;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #2e1a47;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #4c2d75;
-        }
-
-        /* High-fidelity glowing highlights and active states */
-        @keyframes activePulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.03); }
-        }
-        .active-agent {
-            animation: activePulse 2s infinite ease-in-out;
-            border-color: #8b5cf6 !important;
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
-            background: rgba(139, 92, 246, 0.05) !important;
-        }
-        
-        /* Markdown Logs Native Rendering Stylesheet override */
-        .log-markdown h1, .log-markdown h2, .log-markdown h3 {
-            font-weight: 700;
-            color: #f8fafc;
-            margin-top: 0.85rem;
-            margin-bottom: 0.35rem;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-        }
-        .log-markdown h1 { font-size: 1.15rem; border-bottom: 1px solid #1e1b4b; padding-bottom: 4px; }
-        .log-markdown h2 { font-size: 1rem; color: #e2e8f0; }
-        .log-markdown h3 { font-size: 0.9rem; color: #cbd5e1; }
-        .log-markdown p { margin-bottom: 0.65rem; color: #cbd5e1; font-size: 11.5px; line-height: 1.6; }
-        .log-markdown ul, .log-markdown ol { margin-left: 1.25rem; margin-bottom: 0.65rem; }
-        .log-markdown ul { list-style-type: disc; }
-        .log-markdown ol { list-style-type: decimal; }
-        .log-markdown li { margin-bottom: 0.3rem; color: #cbd5e1; font-size: 11.5px; }
-        .log-markdown code { background-color: #1e1b4b; padding: 2px 4px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; color: #a78bfa; font-size: 10.5px; }
-        .log-markdown pre { background-color: #03000a; padding: 0.75rem; border-radius: 6px; overflow-x: auto; margin: 0.75rem 0; border: 1px solid #2e1a47; }
-        .log-markdown pre code { background-color: transparent; padding: 0; color: #f1f5f9; font-size: 10.5px; }
-        .log-markdown blockquote { border-left: 3px solid #8b5cf6; padding-left: 0.75rem; margin: 0.5rem 0; color: #94a3b8; font-style: italic; }
-        .log-markdown table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 11px; }
-        .log-markdown th, .log-markdown td { border: 1px solid #2e1a47; padding: 0.4rem 0.6rem; text-align: left; }
-        .log-markdown th { background-color: #1e1b4b; color: #f8fafc; font-weight: 600; }
-
-        /* Floating workspace toast notifications */
-        .toast {
-            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes slideUp {
-            from { transform: translateY(1rem); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-    </style>
 </head>
-<body class="bg-brand-950 text-slate-100 h-full flex flex-col justify-between overflow-hidden">
+<body class="bg-gray-900 text-white h-screen flex overflow-hidden font-sans">
 
-    <!-- Production App Toast Notification Area -->
-    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+    <!-- LEFT: File Tree Panel -->
+    <div class="w-64 bg-gray-950 border-r border-gray-800 flex flex-col">
+        <div class="p-4 border-b border-gray-800">
+            <h3 class="font-bold text-gray-400 uppercase text-xs tracking-wider">Workspace Files</h3>
+        </div>
+        <ul id="fileTree" class="p-2 space-y-1 text-sm text-gray-300 flex-1 overflow-y-auto">
+            <!-- Dynamically populated files appear here -->
+        </ul>
+    </div>
 
-    <!-- Application Top Bar Header -->
-    <header class="bg-slate-950 border-b border-purple-950/40 px-4 py-3 flex items-center justify-between z-10 shrink-0 pb-safe-top">
-        <div class="flex items-center space-x-3">
-            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
-                <i class="fa-solid fa-microchip text-white text-sm"></i>
-            </div>
-            <div>
-                <h1 class="font-bold text-sm tracking-wide text-slate-100 flex items-center gap-1.5">
-                    GEMINI CODER <span class="text-[9px] text-violet-400 font-bold uppercase px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 tracking-wider">Deep-Thinking v3.5</span>
-                </h1>
-                <p class="text-[10px] text-slate-400 font-medium">Autonomous Multi-Agent Synthesizer</p>
-            </div>
+    <!-- CENTER: Real-Time Preview Panel -->
+    <div class="flex-1 flex flex-col bg-white">
+        <div class="bg-gray-800 p-3 text-xs text-gray-400 flex items-center justify-between shadow-md z-10">
+            <span class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                Live Preview Canvas
+            </span>
+            <button onclick="renderLivePreview()" class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-white transition-colors">Force Refresh</button>
+        </div>
+        <!-- The live preview window -->
+        <iframe id="previewCanvas" class="w-full flex-1 border-none bg-gray-50"></iframe>
+    </div>
+
+    <!-- RIGHT: AI Controller & Auto-Build Panel -->
+    <div class="w-96 bg-gray-950 border-l border-gray-800 flex flex-col">
+        <div class="p-4 border-b border-gray-800 flex justify-between items-center">
+            <h3 class="font-bold text-sm text-blue-400">AI Architect Console</h3>
+            <!-- AUTO BUILD TOGGLE -->
+            <button id="autoBuildBtn" onclick="toggleAutoBuild()" class="bg-red-900/50 text-red-400 border border-red-700 hover:bg-red-800 hover:text-white text-xs px-3 py-1 rounded-full transition-all font-bold tracking-wide">
+                Auto-Build: OFF
+            </button>
         </div>
         
-        <div class="flex items-center space-x-2">
-            <!-- Screen Keep-Alive Activation Trigger -->
-            <button id="wakelockBtn" onclick="toggleWakeLock()" class="p-2 rounded-lg bg-slate-900 border border-purple-950/40 text-slate-400 hover:text-white transition flex items-center shadow-sm" title="Safari Background Keep-Alive">
-                <span class="relative flex h-2 w-2 mr-1.5" id="heartbeatDotContainer" style="display:none;">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <i id="wakelockIcon" class="fa-solid fa-shield-halved text-xs"></i>
-                <span class="text-[10px] ml-1.5 hidden sm:inline font-semibold">Keep-Alive</span>
-            </button>
-            
-            <!-- Global Setting Panel Toggle -->
-            <button id="toggleSettingsBtn" onclick="toggleSettings()" class="p-2 rounded-lg bg-slate-900 border border-purple-950/40 text-slate-400 hover:text-white transition" title="Engine Configurations">
-                <i class="fa-solid fa-sliders text-xs"></i>
-            </button>
+        <div class="p-4 flex-1 flex flex-col gap-2">
+            <label class="text-xs text-gray-500 uppercase tracking-wider">Current File Inspector</label>
+            <textarea id="codeInspector" class="w-full flex-1 bg-gray-900 text-green-400 p-3 font-mono text-xs rounded border border-gray-700 focus:outline-none focus:border-blue-500 transition-colors resize-none shadow-inner" readonly></textarea>
         </div>
-    </header>
-
-    <!-- Main Dynamic Desktop Workspace -->
-    <main class="flex-1 flex flex-col overflow-hidden relative">
         
-        <!-- Settings Overlay Panel -->
-        <section id="settingsPanel" class="absolute inset-x-0 top-0 bg-slate-950/95 backdrop-blur-md border-b border-purple-950/50 shadow-2xl z-35 px-4 py-5 max-h-[85%] overflow-y-auto hidden">
-            <div class="max-w-2xl mx-auto space-y-4">
-                <div class="flex justify-between items-center pb-2 border-b border-purple-900/20">
-                    <h3 class="font-bold text-xs uppercase tracking-wider text-purple-300">Engine Configuration Profile</h3>
-                    <button onclick="toggleSettings()" class="text-slate-400 hover:text-white text-lg p-1" aria-label="Close Settings">&times;</button>
-                </div>
-                
-                <!-- Advanced Multi-Key Pools -->
-                <div class="space-y-2">
-                    <div class="flex justify-between items-center">
-                        <label class="text-xs font-semibold text-slate-400">Gemini Key Rotation Pool (Auto-failsafe rotation)</label>
-                        <button onclick="duplicateFirstKey()" class="text-[10px] bg-slate-900 text-purple-400 px-2.5 py-1 rounded border border-purple-500/20 hover:bg-purple-950/30 transition">
-                            Copy Key #1 to all
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-1 gap-2">
-                        <div class="relative flex items-center">
-                            <span class="absolute left-3 text-[10px] font-mono text-purple-500">1</span>
-                            <input type="password" id="apiKey1" placeholder="Gemini API Key #1 (Primary Key Required)" class="w-full text-xs font-mono bg-black border border-purple-950/60 rounded px-3 py-2 pl-7 text-slate-100 focus:outline-none focus:border-purple-500 transition">
-                        </div>
-                        <div class="relative flex items-center">
-                            <span class="absolute left-3 text-[10px] font-mono text-purple-500">2</span>
-                            <input type="password" id="apiKey2" placeholder="Gemini API Key #2 (Optional Failback)" class="w-full text-xs font-mono bg-black border border-purple-950/60 rounded px-3 py-2 pl-7 text-slate-100 focus:outline-none focus:border-purple-500 transition">
-                        </div>
-                        <div class="relative flex items-center">
-                            <span class="absolute left-3 text-[10px] font-mono text-purple-500">3</span>
-                            <input type="password" id="apiKey3" placeholder="Gemini API Key #3 (Optional Failback)" class="w-full text-xs font-mono bg-black border border-purple-950/60 rounded px-3 py-2 pl-7 text-slate-100 focus:outline-none focus:border-purple-500 transition">
-                        </div>
-                        <div class="relative flex items-center">
-                            <span class="absolute left-3 text-[10px] font-mono text-purple-500">4</span>
-                            <input type="password" id="apiKey4" placeholder="Gemini API Key #4 (Optional Failback)" class="w-full text-xs font-mono bg-black border border-purple-950/60 rounded px-3 py-2 pl-7 text-slate-100 focus:outline-none focus:border-purple-500 transition">
-                        </div>
-                        <div class="relative flex items-center">
-                            <span class="absolute left-3 text-[10px] font-mono text-purple-500">5</span>
-                            <input type="password" id="apiKey5" placeholder="Gemini API Key #5 (Optional Failback)" class="w-full text-xs font-mono bg-black border border-purple-950/60 rounded px-3 py-2 pl-7 text-slate-100 focus:outline-none focus:border-purple-500 transition">
-                        </div>
-                    </div>
-                    <p class="text-[10px] text-slate-500 leading-relaxed">Rotation prevents 429 rate-limiting triggers on standard free-tier plans by shifting targets upon server pacing blocks.</p>
-                </div>
-
-                <!-- Parameters Controls -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400">Target Pipeline Model</label>
-                        <select id="modelSelect" class="w-full text-xs bg-black border border-purple-950/60 rounded px-3 py-2 text-slate-100 focus:outline-none focus:border-purple-500 transition cursor-pointer">
-                            <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash (Default - Rapid & Efficient)</option>
-                            <option value="gemini-3.5-pro">Gemini 3.5 Pro (Advanced Logic & Context)</option>
-                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Legacy Production)</option>
-                            <option value="gemini-2.5-pro">Gemini 2.5 Pro (Legacy Logic Core)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 flex justify-between">
-                            <span>Deep-Thinking Loop Depth</span>
-                            <span id="thinkingLevelLabel" class="text-purple-400 font-bold font-mono">10 Passes</span>
-                        </label>
-                        <div class="flex items-center gap-3">
-                            <input type="range" id="thinkingLevel" min="2" max="35" value="10" class="w-full accent-purple-500 cursor-pointer" oninput="document.getElementById('thinkingLevelLabel').innerText = this.value + ' Passes'">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 flex items-center justify-between">
-                            <span>API Cool-down Delay</span>
-                            <span id="delayLabel" class="text-purple-400 font-mono font-bold">3s</span>
-                        </label>
-                        <input type="range" id="pacingDelay" min="0" max="20" value="3" class="w-full accent-purple-500 cursor-pointer" oninput="document.getElementById('delayLabel').innerText = this.value + 's'">
-                    </div>
-                    
-                    <div class="space-y-1 flex flex-col justify-end">
-                        <div class="flex items-center space-x-2.5 py-2">
-                            <input type="checkbox" id="audioToggle" checked class="rounded border-purple-950 text-purple-600 focus:ring-0 bg-black cursor-pointer">
-                            <label for="audioToggle" class="text-xs font-semibold text-slate-400 select-none cursor-pointer">Audio Chime Notifications</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Pipeline Execution Trace Bar -->
-        <div class="bg-slate-950 border-b border-purple-950/30 p-2.5 grid grid-cols-5 gap-2 text-center shrink-0">
-            <div id="agent-1" class="border border-purple-950/20 bg-slate-900/20 rounded-lg p-2 transition-all duration-300">
-                <p class="text-[9px] font-bold text-slate-500 tracking-wider">1. ARCHITECT</p>
-                <div class="w-1.5 h-1.5 bg-slate-800 rounded-full mx-auto mt-1.5 status-dot transition-colors"></div>
-            </div>
-            <div id="agent-2" class="border border-purple-950/20 bg-slate-900/20 rounded-lg p-2 transition-all duration-300">
-                <p class="text-[9px] font-bold text-slate-500 tracking-wider">2. AUDITOR</p>
-                <div class="w-1.5 h-1.5 bg-slate-800 rounded-full mx-auto mt-1.5 status-dot transition-colors"></div>
-            </div>
-            <div id="agent-3" class="border border-purple-950/20 bg-slate-900/20 rounded-lg p-2 transition-all duration-300">
-                <p class="text-[9px] font-bold text-slate-500 tracking-wider">3. FIXER</p>
-                <div class="w-1.5 h-1.5 bg-slate-800 rounded-full mx-auto mt-1.5 status-dot transition-colors"></div>
-            </div>
-            <div id="agent-4" class="border border-purple-950/20 bg-slate-900/20 rounded-lg p-2 transition-all duration-300">
-                <p class="text-[9px] font-bold text-slate-500 tracking-wider">4. ENHANCER</p>
-                <div class="w-1.5 h-1.5 bg-slate-800 rounded-full mx-auto mt-1.5 status-dot transition-colors"></div>
-            </div>
-            <div id="agent-5" class="border border-purple-950/20 bg-slate-900/20 rounded-lg p-2 transition-all duration-300">
-                <p class="text-[9px] font-bold text-slate-500 tracking-wider">5. POLISHER</p>
-                <div class="w-1.5 h-1.5 bg-slate-800 rounded-full mx-auto mt-1.5 status-dot transition-colors"></div>
-            </div>
-        </div>
-
-        <!-- System Progress Telemetry Panel -->
-        <div id="progressMetricPanel" class="bg-purple-950/10 border-b border-purple-950/20 px-4 py-2 hidden flex items-center justify-between shrink-0">
-            <div class="flex items-center space-x-2 text-xs">
-                <span class="relative flex h-2.5 w-2.5">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-violet-500"></span>
-                </span>
-                <span id="currentProcessLabel" class="font-semibold text-slate-300">Engine Inactive</span>
-            </div>
-            <div class="flex items-center space-x-4 text-xs font-mono">
-                <span class="text-slate-400">Pass: <span id="passCounter" class="text-purple-400 font-bold">0/0</span></span>
-                <span class="text-slate-400">Elapsed: <span id="timerLabel" class="text-purple-400">00:00</span></span>
-                <span class="text-slate-400 hidden sm:inline">Size: <span id="codeSizeLabel" class="text-purple-400">0 KB</span></span>
-            </div>
-        </div>
-
-        <!-- Split Workspace Layout Panel -->
-        <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+        <div class="p-4 bg-gray-900 border-t border-gray-800">
+            <label class="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Next Command</label>
+            <input id="aiPrompt" type="text" placeholder="e.g., Add a dark mode toggle..." class="w-full bg-gray-950 text-white p-3 text-sm rounded border border-gray-700 focus:outline-none focus:border-blue-500 shadow-inner mb-3">
             
-            <!-- Specs & Settings Workspace Side -->
-            <div id="sidebarPanel" class="w-full md:w-[350px] lg:w-[400px] border-b md:border-b-0 md:border-r border-purple-950/30 p-4 flex flex-col space-y-4 shrink-0 transition-all duration-300">
-                <div class="flex justify-between items-center">
-                    <label class="text-xs font-bold text-slate-400 flex items-center gap-2 uppercase tracking-wide">
-                        <i class="fa-solid fa-feather-pointed text-purple-400"></i> Code Specification Specifications
-                    </label>
-                    <button onclick="clearAllCache()" class="text-[10px] text-rose-400 hover:text-rose-300 transition flex items-center gap-1.5 font-medium">
-                        <i class="fa-solid fa-fire"></i> Reset Storage
-                    </button>
-                </div>
-                
-                <textarea id="promptInput" placeholder="Describe the single-file application or utility page you want to generate. Be specific regarding features, libraries (Tailwind, FontAwesome, ChartJS etc.), aesthetics, and logic requirements." class="w-full flex-1 min-h-[140px] md:min-h-0 text-xs font-sans bg-black border border-purple-950/40 rounded-xl p-3.5 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 resize-none leading-relaxed transition"></textarea>
-                
-                <!-- Advanced Workspace Context Templates -->
-                <div class="space-y-2">
-                    <p class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Instant Worksheets Templates:</p>
-                    <div class="grid grid-cols-3 gap-1.5">
-                        <button onclick="loadTemplate('pomodoro')" class="text-[10px] bg-slate-900 border border-purple-950/30 text-slate-300 px-2 py-1.5 rounded-lg hover:border-purple-500/30 hover:bg-slate-800 transition text-center truncate">Pomodoro Clock</button>
-                        <button onclick="loadTemplate('piano')" class="text-[10px] bg-slate-900 border border-purple-950/30 text-slate-300 px-2 py-1.5 rounded-lg hover:border-purple-500/30 hover:bg-slate-800 transition text-center truncate">Retro Synth</button>
-                        <button onclick="loadTemplate('kanban')" class="text-[10px] bg-slate-900 border border-purple-950/30 text-slate-300 px-2 py-1.5 rounded-lg hover:border-purple-500/30 hover:bg-slate-800 transition text-center truncate">Kanban Desk</button>
-                    </div>
-                </div>
-
-                <!-- Executable Controls -->
-                <div class="grid grid-cols-2 gap-2 pt-2">
-                    <button id="runPipelineBtn" onclick="startPipeline()" class="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-violet-600/15">
-                        <i class="fa-solid fa-play"></i> Launch System
-                    </button>
-                    <button id="abortBtn" onclick="abortPipeline()" class="bg-slate-900 text-slate-500 border border-purple-950/20 py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-not-allowed" disabled>
-                        <i class="fa-solid fa-circle-stop"></i> Abort Loop
-                    </button>
-                </div>
-            </div>
-
-            <!-- Workspace Action Content Area -->
-            <div class="flex-1 flex flex-col overflow-hidden">
-                <!-- Tab Switching bar -->
-                <div class="bg-slate-950 border-b border-purple-950/30 flex items-center justify-between px-3 shrink-0">
-                    <div class="flex space-x-1.5 py-1.5">
-                        <button onclick="switchTab('terminal')" id="tabBtn-terminal" class="tab-btn px-3.5 py-2 rounded-lg text-[11px] font-bold transition-all flex items-center gap-2 text-slate-100 bg-slate-900 border border-purple-950/40">
-                            <i class="fa-solid fa-terminal text-purple-400"></i> CONSOLE
-                        </button>
-                        <button onclick="switchTab('preview')" id="tabBtn-preview" class="tab-btn px-3.5 py-2 rounded-lg text-[11px] font-bold transition-all flex items-center gap-2 text-slate-400 hover:text-slate-100">
-                            <i class="fa-solid fa-tv text-emerald-400"></i> PREVIEW
-                        </button>
-                        <button onclick="switchTab('code')" id="tabBtn-code" class="tab-btn px-3.5 py-2 rounded-lg text-[11px] font-bold transition-all flex items-center gap-2 text-slate-400 hover:text-slate-100">
-                            <i class="fa-solid fa-code text-indigo-400"></i> SOURCE
-                        </button>
-                    </div>
-                    
-                    <!-- Dynamic Context utility controls -->
-                    <div class="flex items-center space-x-1.5">
-                        <button id="sidebarToggleBtn" onclick="toggleSidebar()" class="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-900 transition" title="Toggle Specifications Sidebar">
-                            <i class="fa-solid fa-columns text-xs"></i>
-                        </button>
-                        <button id="externalPreviewBtn" onclick="openExternalPreview()" class="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-900 hidden transition" title="Open Preview in External Window">
-                            <i class="fa-solid fa-up-right-from-square text-xs"></i>
-                        </button>
-                        <button id="copyCodeBtn" onclick="copySourceCode()" class="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-900 transition" title="Copy Raw Code">
-                            <i class="fa-solid fa-copy text-xs"></i>
-                        </button>
-                        <button id="downloadCodeBtn" onclick="downloadCode()" class="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-900 transition" title="Download Compilation File">
-                            <i class="fa-solid fa-download text-xs"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Tab panel structures -->
-                <div class="flex-1 overflow-hidden relative">
-                    
-                    <!-- CONSOLE LOG PANEL -->
-                    <div id="tabPanel-terminal" class="tab-panel absolute inset-0 p-4 overflow-y-auto font-mono text-[11px] space-y-3 bg-black">
-                        <div class="text-slate-500 border-b border-purple-950/40 pb-2 mb-3 flex justify-between items-center shrink-0">
-                            <span class="font-bold tracking-wider uppercase text-[10px]">GEMINI PIPELINE DIAGNOSTICS</span>
-                            <span id="logKeyRotationStatus" class="text-[9px] text-purple-400 font-bold uppercase tracking-widest bg-purple-950/40 px-2 py-0.5 rounded border border-purple-900/30">KEY SLOT ACTIVE: 1</span>
-                        </div>
-                        <div id="terminalContainer" class="space-y-2">
-                            <div class="text-slate-500 font-sans italic p-4 border border-dashed border-purple-950/20 rounded-xl text-center max-w-md mx-auto mt-10">
-                                Provide your Gemini credentials inside settings, input instructions on the left workspace panel, and launch the system pipeline. Live multi-agent diagnostics trace and code updates will output here.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- PREVIEW PANEL -->
-                    <div id="tabPanel-preview" class="tab-panel absolute inset-0 hidden bg-slate-900">
-                        <iframe id="previewIframe" class="w-full h-full bg-white border-none" sandbox="allow-scripts allow-modals allow-popups allow-forms"></iframe>
-                    </div>
-
-                    <!-- RAW SOURCE CODE PANEL -->
-                    <div id="tabPanel-code" class="tab-panel absolute inset-0 p-4 overflow-y-auto hidden bg-black">
-                        <pre class="h-full rounded-xl overflow-x-auto"><code id="codeViewer" class="language-html text-[11px] h-full leading-relaxed block font-mono"></code></pre>
-                    </div>
-
-                </div>
-            </div>
-
+            <button id="manualTriggerBtn" onclick="triggerAiGeneration()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 p-3 rounded text-sm font-semibold tracking-wide hover:opacity-90 shadow-lg transition-opacity flex justify-center items-center gap-2">
+                Inject Component
+            </button>
         </div>
-
-    </main>
-
-    <!-- Global Progress Bar Track -->
-    <div class="w-full h-[3px] bg-slate-950 shrink-0 relative overflow-hidden">
-        <div id="globalProgressBar" class="h-full bg-gradient-to-r from-violet-600 to-indigo-600 w-0 transition-all duration-300"></div>
     </div>
 
     <script>
-        // System Config & Global State variables
-        let state = {
-            isRunning: false,
-            keys: [],
-            activeKeyIndex: 0,
-            model: 'gemini-3.5-flash',
-            thinkingLevel: 10,
-            pacingDelay: 3,
-            currentPass: 0,
-            timerInterval: null,
-            elapsedSeconds: 0,
-            pipelineOutput: '',
-            abortController: null,
-            logs: [],
-            audioCtx: null,
-            oscillator: null,
-            wakeLock: null,
-            wakeLockActive: false,
-            sidebarCollapsed: false
+        // 1. Core State
+        let isAutoBuildActive = false;
+        let isGenerating = false;
+        
+        let virtualFileSystem = {
+            "index.html": "<!DOCTYPE html><html><head><script src='https://cdn.tailwindcss.com'><\/script></head><body class='bg-gray-100 min-h-screen'><div id='header-target'></div><main id='main-target' class='p-8 text-center'><h1 class='text-4xl font-bold text-gray-800 mb-4'>Waiting for AI...</h1><p class='text-gray-500'>Give the AI a prompt to start building.</p></main><div id='footer-target'></div><script src='app.js'><\/script></body></html>",
+            "app.js": "console.log('App Initialized');"
         };
 
-        const elements = {
-            apiKey1: document.getElementById('apiKey1'),
-            apiKey2: document.getElementById('apiKey2'),
-            apiKey3: document.getElementById('apiKey3'),
-            apiKey4: document.getElementById('apiKey4'),
-            apiKey5: document.getElementById('apiKey5'),
-            modelSelect: document.getElementById('modelSelect'),
-            thinkingLevel: document.getElementById('thinkingLevel'),
-            pacingDelay: document.getElementById('pacingDelay'),
-            audioToggle: document.getElementById('audioToggle'),
-            promptInput: document.getElementById('promptInput'),
-            runPipelineBtn: document.getElementById('runPipelineBtn'),
-            abortBtn: document.getElementById('abortBtn'),
-            settingsPanel: document.getElementById('settingsPanel'),
-            progressMetricPanel: document.getElementById('progressMetricPanel'),
-            currentProcessLabel: document.getElementById('currentProcessLabel'),
-            passCounter: document.getElementById('passCounter'),
-            timerLabel: document.getElementById('timerLabel'),
-            codeSizeLabel: document.getElementById('codeSizeLabel'),
-            terminalContainer: document.getElementById('terminalContainer'),
-            previewIframe: document.getElementById('previewIframe'),
-            codeViewer: document.getElementById('codeViewer'),
-            globalProgressBar: document.getElementById('globalProgressBar'),
-            wakelockIcon: document.getElementById('wakelockIcon'),
-            wakelockBtn: document.getElementById('wakelockBtn'),
-            heartbeatDotContainer: document.getElementById('heartbeatDotContainer'),
-            logKeyRotationStatus: document.getElementById('logKeyRotationStatus'),
-            externalPreviewBtn: document.getElementById('externalPreviewBtn'),
-            sidebarPanel: document.getElementById('sidebarPanel'),
-            toastContainer: document.getElementById('toastContainer')
-        };
-
-        const templates = {
-            pomodoro: "Build a single-file Pomodoro workspace. Include: dynamic graphical progress rings (SVG), stats panel recording historical focus intervals, customizable audio profile overlays, an integrated retro task registry with priority tags, and automated local-storage status saving.",
-            piano: "Build a single-file responsive virtual performance synthesizer and keyboard. Include: visual interactive keys with polyphonic MIDI bindings, sound profile parameters (sine, square, triangle, sawtooth), ADSR wave envelope slider nodes, recording channels with exportable state tracks, and canvas analyzer visualization nodes.",
-            kanban: "Build a fully operational custom single-file Kanban Board. Include: interactive drag-and-drop workflow lanes, colorized high-priority cards, subtask verification checklists, custom tags, date/overdue indicators, searching and filtering bars, and complete local-storage persistence."
-        };
-
-        // UI Notification engine
-        function triggerToast(message, type = "success") {
-            const toast = document.createElement('div');
-            toast.className = `toast px-4 py-2.5 rounded-xl text-xs font-semibold shadow-2xl flex items-center space-x-2 border transition duration-300 pointer-events-auto bg-slate-900 ${
-                type === 'success' ? 'border-emerald-500/30 text-emerald-400' : 
-                type === 'warn' ? 'border-amber-500/30 text-amber-400' : 'border-rose-500/30 text-rose-400'
-            }`;
-            
-            const icon = type === 'success' ? 'fa-check-circle' : type === 'warn' ? 'fa-exclamation-triangle' : 'fa-times-circle';
-            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
-            
-            elements.toastContainer.appendChild(toast);
-            setTimeout(() => {
-                toast.classList.add('opacity-0');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        // Cache Management: Load saved settings on boot
-        window.addEventListener('DOMContentLoaded', () => {
-            loadFromLocalStorage();
-            initializeNotifications();
-        });
-
-        function loadTemplate(key) {
-            elements.promptInput.value = templates[key] || '';
-            saveToLocalStorage();
-            triggerToast("Template loaded into specs", "success");
-        }
-
-        function loadFromLocalStorage() {
-            elements.apiKey1.value = localStorage.getItem('gemini_key_1') || '';
-            elements.apiKey2.value = localStorage.getItem('gemini_key_2') || '';
-            elements.apiKey3.value = localStorage.getItem('gemini_key_3') || '';
-            elements.apiKey4.value = localStorage.getItem('gemini_key_4') || '';
-            elements.apiKey5.value = localStorage.getItem('gemini_key_5') || '';
-            elements.modelSelect.value = localStorage.getItem('gemini_model') || 'gemini-3.5-flash';
-            elements.thinkingLevel.value = localStorage.getItem('gemini_thinking_level') || '10';
-            elements.pacingDelay.value = localStorage.getItem('gemini_pacing_delay') || '3';
-            elements.promptInput.value = localStorage.getItem('gemini_prompt') || '';
-            
-            document.getElementById('thinkingLevelLabel').innerText = elements.thinkingLevel.value + ' Passes';
-            document.getElementById('delayLabel').innerText = elements.pacingDelay.value + 's';
-        }
-
-        function saveToLocalStorage() {
-            localStorage.setItem('gemini_key_1', elements.apiKey1.value);
-            localStorage.setItem('gemini_key_2', elements.apiKey2.value);
-            localStorage.setItem('gemini_key_3', elements.apiKey3.value);
-            localStorage.setItem('gemini_key_4', elements.apiKey4.value);
-            localStorage.setItem('gemini_key_5', elements.apiKey5.value);
-            localStorage.setItem('gemini_model', elements.modelSelect.value);
-            localStorage.setItem('gemini_thinking_level', elements.thinkingLevel.value);
-            localStorage.setItem('gemini_pacing_delay', elements.pacingDelay.value);
-            localStorage.setItem('gemini_prompt', elements.promptInput.value);
-        }
-
-        function clearAllCache() {
-            if (confirm("Reset current specs and clean all local-storage settings from browser?")) {
-                localStorage.clear();
-                elements.apiKey1.value = '';
-                elements.apiKey2.value = '';
-                elements.apiKey3.value = '';
-                elements.apiKey4.value = '';
-                elements.apiKey5.value = '';
-                elements.promptInput.value = '';
-                elements.thinkingLevel.value = '10';
-                elements.pacingDelay.value = '3';
-                triggerToast("Browser cache wiped", "warn");
-                setTimeout(() => location.reload(), 1000);
-            }
-        }
-
-        function duplicateFirstKey() {
-            const firstVal = elements.apiKey1.value.trim();
-            if (!firstVal) {
-                triggerToast("Please populate Key #1 first", "warn");
-                return;
-            }
-            elements.apiKey2.value = firstVal;
-            elements.apiKey3.value = firstVal;
-            elements.apiKey4.value = firstVal;
-            elements.apiKey5.value = firstVal;
-            saveToLocalStorage();
-            triggerToast("Primary key duplicated across all backup slots", "success");
-        }
-
-        // Dual keep-alive engine: WakeLock API + WebAudio Keep-Alive
-        async function toggleWakeLock() {
-            if (!state.wakeLockActive) {
-                try {
-                    // Try setting up Web Screen WakeLock
-                    if ('wakeLock' in navigator) {
-                        state.wakeLock = await navigator.wakeLock.request('screen');
-                    }
-                    
-                    // Setup background WebAudio Keep-Alive oscillator fallback
-                    state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    if (state.audioCtx.state === 'suspended') {
-                        await state.audioCtx.resume();
-                    }
-                    
-                    state.oscillator = state.audioCtx.createOscillator();
-                    const gainNode = state.audioCtx.createGain();
-                    state.oscillator.type = 'sine';
-                    state.oscillator.frequency.value = 21000; // Ultra high-frequency
-                    gainNode.gain.setValueAtTime(0.00001, state.audioCtx.currentTime);
-                    
-                    state.oscillator.connect(gainNode);
-                    gainNode.connect(state.audioCtx.destination);
-                    state.oscillator.start();
-                    
-                    state.wakeLockActive = true;
-                    elements.wakelockIcon.className = "fa-solid fa-shield-cat text-emerald-400";
-                    elements.wakelockBtn.classList.add('border-emerald-500/30', 'bg-emerald-500/10');
-                    elements.heartbeatDotContainer.style.display = 'inline-flex';
-                    
-                    pushSystemLog("Engine Thread Guard", "Active keep-alive engaged. WebLock API and background audio loops secured.", "emerald-400");
-                    triggerToast("Keep-Alive system active", "success");
-                } catch(e) {
-                    console.error("Keep-Alive failed: ", e);
-                    triggerToast("Heartbeat rejected. Interactive sounds disabled.", "warn");
-                }
-            } else {
-                releaseKeepAlive();
-            }
-        }
-
-        function releaseKeepAlive() {
-            if (state.wakeLock) {
-                state.wakeLock.release().then(() => { state.wakeLock = null; });
-            }
-            if (state.oscillator) {
-                try { state.oscillator.stop(); } catch(err) {}
-                state.oscillator.disconnect();
-                state.oscillator = null;
-            }
-            state.wakeLockActive = false;
-            elements.wakelockIcon.className = "fa-solid fa-shield-halved text-slate-400";
-            elements.wakelockBtn.classList.remove('border-emerald-500/30', 'bg-emerald-500/10');
-            elements.heartbeatDotContainer.style.display = 'none';
-            pushSystemLog("Engine Thread Guard", "Background loops suspended.", "slate-500");
-        }
-
-        function toggleSettings() {
-            elements.settingsPanel.classList.toggle('hidden');
-        }
-
-        function toggleSidebar() {
-            state.sidebarCollapsed = !state.sidebarCollapsed;
-            if (state.sidebarCollapsed) {
-                elements.sidebarPanel.classList.add('hidden');
-            } else {
-                elements.sidebarPanel.classList.remove('hidden');
-            }
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('text-slate-100', 'bg-slate-900', 'border', 'border-purple-950/40');
-                btn.classList.add('text-slate-400');
+        // 2. UI Updates
+        function updateFileTreeUI() {
+            const treeEl = document.getElementById('fileTree');
+            treeEl.innerHTML = '';
+            Object.keys(virtualFileSystem).forEach(filename => {
+                let li = document.createElement('li');
+                li.className = "cursor-pointer text-gray-400 hover:text-white p-2 rounded hover:bg-gray-800 flex items-center transition-colors";
+                li.innerHTML = `📄 <span class="ml-2 truncate">${filename}</span>`;
+                li.onclick = () => {
+                    document.getElementById('codeInspector').value = virtualFileSystem[filename];
+                };
+                treeEl.appendChild(li);
             });
-
-            document.getElementById(`tabPanel-${tabId}`).classList.remove('hidden');
-            const targetBtn = document.getElementById(`tabBtn-${tabId}`);
-            targetBtn.classList.add('text-slate-100', 'bg-slate-900', 'border', 'border-purple-950/40');
-            targetBtn.classList.remove('text-slate-400');
         }
 
-        // Custom, sanitized, production-ready markdown compiler
-        function pushSystemLog(agent, msg, colorClass = "slate-300") {
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = document.createElement('div');
-            logEntry.className = `p-3 rounded-xl bg-slate-950 border-l-2 border-purple-900/60 font-mono text-[11px] leading-relaxed mb-2`;
+        // 3. The Compiler
+        function renderLivePreview() {
+            const iframe = document.getElementById('previewCanvas');
+            let compiledHTML = virtualFileSystem["index.html"];
             
-            let renderedContent = "";
-            if (agent.includes("Auditor") || agent.includes("Architect") || agent.includes("Diagnostics")) {
-                try {
-                    renderedContent = `<div class="log-markdown">${DOMPurify.sanitize(marked.parse(msg))}</div>`;
-                } catch(e) {
-                    renderedContent = `<pre class="whitespace-pre-wrap font-mono text-[11px] text-slate-300">${escapeHTML(msg)}</pre>`;
-                }
-            } else {
-                renderedContent = `<pre class="whitespace-pre-wrap font-mono text-[11px] text-slate-300">${escapeHTML(msg)}</pre>`;
-            }
-
-            logEntry.innerHTML = `
-                <div class="flex justify-between items-start border-b border-purple-950/20 pb-1.5 mb-2">
-                    <span class="font-bold text-${colorClass} uppercase tracking-wider text-[10px]">[${agent}]</span>
-                    <span class="text-[9px] text-slate-600">${timestamp}</span>
-                </div>
-                <div class="text-slate-200 select-text">${renderedContent}</div>
-            `;
+            // Inject components dynamically if they exist
+            if(virtualFileSystem["components/Header.html"]) compiledHTML = compiledHTML.replace("<div id='header-target'></div>", virtualFileSystem["components/Header.html"]);
+            if(virtualFileSystem["components/Hero.html"]) compiledHTML = compiledHTML.replace("<main id='main-target'", "<main style='display:none;' id='hidden-target'").replace("</main>", "</main>" + virtualFileSystem["components/Hero.html"]);
+            if(virtualFileSystem["components/Footer.html"]) compiledHTML = compiledHTML.replace("<div id='footer-target'></div>", virtualFileSystem["components/Footer.html"]);
             
-            elements.terminalContainer.appendChild(logEntry);
-            const parentPanel = document.getElementById('tabPanel-terminal');
-            parentPanel.scrollTop = parentPanel.scrollHeight;
+            // Inject JS
+            compiledHTML = compiledHTML.replace("<script src='app.js'><\/script>", `<script>${virtualFileSystem["app.js"]}<\/script>`);
+
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(compiledHTML);
+            doc.close();
+        }
+
+        // 4. Autonomous Controls
+        function toggleAutoBuild() {
+            const btn = document.getElementById('autoBuildBtn');
+            isAutoBuildActive = !isAutoBuildActive;
             
-            state.logs.push({ agent, msg, timestamp });
-        }
-
-        function escapeHTML(str) {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
-
-        function initializeNotifications() {
-            if ("Notification" in window && Notification.permission === "default") {
-                Notification.requestPermission();
-            }
-        }
-
-        function sendSuccessNotification() {
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification("Autonomous Pipeline Complete", {
-                    body: `Prerelease and build successfully compiled and injected!`,
-                    icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%238b5cf6' d='M256 0c141.4 0 256 114.6 256 256S397.4 512 256 512 0 397.4 0 256 114.6 0 256 0z'/></svg>"
-                });
-            }
-        }
-
-        // Professional synthesized multi-chord feedback
-        function triggerChime() {
-            if (!elements.audioToggle.checked) return;
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const now = ctx.currentTime;
-                // Elegant E-Major chord cadence
-                const freqs = [329.63, 415.30, 493.88, 659.25];
+            if (isAutoBuildActive) {
+                btn.className = "bg-green-900/50 text-green-400 border border-green-500 hover:bg-green-800 hover:text-white text-xs px-3 py-1 rounded-full transition-all font-bold tracking-wide animate-pulse";
+                btn.innerText = "Auto-Build: ON";
                 
-                freqs.forEach((freq, idx) => {
-                    const osc = ctx.createOscillator();
-                    const gainNode = ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + (idx * 0.06));
-                    gainNode.gain.setValueAtTime(0.06, now);
-                    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
-                    osc.connect(gainNode);
-                    gainNode.connect(ctx.destination);
-                    osc.start(now);
-                    osc.stop(now + 1.8);
-                });
+                // If the user hasn't typed anything, kick it off with a default command
+                if (!document.getElementById('aiPrompt').value) {
+                    document.getElementById('aiPrompt').value = "Initialize core layout with a modern navbar and hero section.";
+                }
+                triggerAiGeneration();
+            } else {
+                btn.className = "bg-red-900/50 text-red-400 border border-red-700 hover:bg-red-800 hover:text-white text-xs px-3 py-1 rounded-full transition-all font-bold tracking-wide";
+                btn.innerText = "Auto-Build: OFF";
+            }
+        }
+
+        // 5. AI Interaction Engine
+        async function triggerAiGeneration() {
+            if (isGenerating) return;
+            
+            const promptInput = document.getElementById('aiPrompt');
+            const promptText = promptInput.value;
+            if (!promptText) return;
+
+            isGenerating = true;
+            document.getElementById('manualTriggerBtn').innerText = "Generating...";
+            document.getElementById('manualTriggerBtn').classList.add('opacity-50', 'cursor-not-allowed');
+
+            // ====================================================================
+            // ⚠️ REPLACE THIS BLOCK WITH YOUR ACTUAL GEMINI API FETCH REQUEST ⚠️
+            // ====================================================================
+            
+            // Simulating network delay and API response for demonstration
+            const mockApiResponse = await simulateBackendApiCall(promptText);
+            
+            // ====================================================================
+
+            handleAiResponseChunk(mockApiResponse);
+            
+            isGenerating = false;
+            document.getElementById('manualTriggerBtn').innerText = "Inject Component";
+            document.getElementById('manualTriggerBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        function handleAiResponseChunk(jsonStringResponse) {
+            try {
+                const updateData = JSON.parse(jsonStringResponse);
+                
+                // Write to virtual file system
+                virtualFileSystem[updateData.target_file] = updateData.code;
+                
+                // Update UI instantly
+                document.getElementById('codeInspector').value = updateData.code;
+                document.getElementById('aiPrompt').value = ""; // Clear input
+                updateFileTreeUI();
+                renderLivePreview();
+                
+                // AUTONOMOUS LOOP TRIGGER
+                if (isAutoBuildActive && updateData.next_recommended_step) {
+                    document.getElementById('aiPrompt').value = updateData.next_recommended_step;
+                    console.log(`Auto-Build queueing next step: ${updateData.next_recommended_step}`);
+                    
+                    // Wait 2 seconds so the user can see the change, then fire again
+                    setTimeout(() => {
+                        if (isAutoBuildActive) triggerAiGeneration();
+                    }, 2000);
+                }
+                
             } catch (e) {
-                console.warn("Audio chime prevented by browser gesture logic.", e);
+                console.error("Failed to parse clean component JSON data: ", e);
+                // If it fails, stop auto-build to prevent infinite error loops
+                if (isAutoBuildActive) toggleAutoBuild();
             }
         }
 
-        function getAPIKeyPool() {
-            return [
-                elements.apiKey1.value.trim(),
-                elements.apiKey2.value.trim(),
-                elements.apiKey3.value.trim(),
-                elements.apiKey4.value.trim(),
-                elements.apiKey5.value.trim()
-            ].filter(k => k !== "");
-        }
-
-        function getActiveKey() {
-            if (state.keys.length === 0) return null;
-            return state.keys[state.activeKeyIndex % state.keys.length];
-        }
-
-        function rotateAPIKey() {
-            if (state.keys.length <= 1) return;
-            state.activeKeyIndex = (state.activeKeyIndex + 1) % state.keys.length;
-            elements.logKeyRotationStatus.innerText = `KEY SLOT ACTIVE: ${state.activeKeyIndex + 1}`;
-            pushSystemLog("Engine Security", `Rotating current context downstream to key slot #${state.activeKeyIndex + 1}...`, "amber-400");
-        }
-
-        const sleep = ms => new Promise(res => setTimeout(res, ms));
-
-        // High-resilient HTTP request handler with backoff, payload validation, and AUTO-CONTINUE functionality
-        async function robustAPIRequest(promptObj, systemInstructionText, retryCount = 0) {
-            const maxRetries = 6;
-            const baseDelay = 4000;
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${state.model}:generateContent`;
-            const apiKey = getActiveKey();
-            
-            if (!apiKey) {
-                throw new Error("Target API key pool empty. Check configurations.");
-            }
-
-            const payload = {
-                contents: [{ parts: [{ text: promptObj }] }],
-                systemInstruction: { parts: [{ text: systemInstructionText }] },
-                generationConfig: {
-                    temperature: 0.2,
-                    topP: 0.95,
-                    maxOutputTokens: 8192
-                }
-            };
-
-            try {
-                if (state.abortController.signal.aborted) {
-                    throw new Error("Execution canceled.");
-                }
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-goog-api-key': apiKey
-                    },
-                    body: JSON.stringify(payload),
-                    signal: state.abortController.signal
-                });
-
-                if (response.status === 429) {
-                    rotateAPIKey();
-                    if (retryCount >= maxRetries) {
-                        throw new Error("API Limit threshold reached across complete rotated key profiles.");
-                    }
-                    const backoffTime = Math.min(60000, baseDelay * Math.pow(2, retryCount)) + Math.random() * 2000;
-                    pushSystemLog("Client Rate-Limiting", `Pacing delay triggered (429). Stalling for ${(backoffTime / 1000).toFixed(1)}s before retry.`, "amber-400");
-                    await sleep(backoffTime);
-                    return await robustAPIRequest(promptObj, systemInstructionText, retryCount + 1);
-                }
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Gemini System Error Code [${response.status}]: ${errorText}`);
-                }
-
-                const data = await response.json();
-                
-                if (data.promptFeedback && data.promptFeedback.blockReason) {
-                    throw new Error(`Safety Engine Intervened: Target context blocked because of structural parameters: ${data.promptFeedback.blockReason}`);
-                }
-
-                if (data.candidates && data.candidates[0].finishReason && data.candidates[0].finishReason !== "STOP" && data.candidates[0].finishReason !== "MAX_TOKENS") {
-                    const reason = data.candidates[0].finishReason;
-                    if (reason === "SAFETY") {
-                        throw new Error("Safety Engine Intervened: Output generation blocked due to safety parameters.");
-                    }
-                }
-
-                if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
-                    throw new Error("Null response payload generated. Refine constraints and try again.");
-                }
-
-                let generatedText = data.candidates[0].content.parts[0].text;
-                let finishReason = data.candidates[0].finishReason;
-
-                // PROGRAMMATIC AUTO-CONTINUE: Fix token limits natively
-                if (finishReason === "MAX_TOKENS" || finishReason === "FINISH_REASON_UNSPECIFIED") {
-                    pushSystemLog("Auto-Continue Triggered", "Token limit hit mid-generation. Automatically fetching continuation...", "amber-400");
+        // --- Mock API Function just to prove the auto-loop works out of the box ---
+        function simulateBackendApiCall(prompt) {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    let mockResponse = {};
                     
-                    const contextTail = generatedText.slice(-250);
-                    const continuationPrompt = `Your previous response was cut off due to maximum token limits. Do NOT start over. Continue writing the code EXACTLY where you left off. Do not wrap your response in introductory text or new markdown blocks if you were in the middle of code. Here is the tail end of your previous output for context:\n\n${contextTail}`;
-                    
-                    try {
-                        const nextPart = await robustAPIRequest(continuationPrompt, systemInstructionText, 0);
-                        // Clean up potential markdown wrappers the AI might try to insert at the start of the new block
-                        const cleanNextPart = nextPart.replace(/^```(html|xml|javascript|css)?\n?/i, '');
-                        generatedText += cleanNextPart;
-                    } catch (e) {
-                        pushSystemLog("Continuation Failed", "Could not fetch the rest of the truncated code.", "rose-400");
+                    if (prompt.includes("layout") || prompt.includes("navbar")) {
+                        mockResponse = {
+                            target_file: "components/Header.html",
+                            action: "CREATE",
+                            code: "<nav class='bg-indigo-600 p-4 shadow-lg text-white flex justify-between items-center'><div class='font-bold text-xl tracking-tight'>AI App</div><div class='flex gap-4'><a href='#' class='hover:text-indigo-200'>Home</a><a href='#' class='hover:text-indigo-200'>Features</a></div></nav>",
+                            next_recommended_step: "Now I will build a visually striking Hero component to capture user attention."
+                        };
+                    } else if (prompt.includes("Hero")) {
+                        mockResponse = {
+                            target_file: "components/Hero.html",
+                            action: "CREATE",
+                            code: "<div class='bg-gradient-to-br from-indigo-900 to-purple-900 py-20 px-8 text-center text-white'><h1 class='text-5xl font-extrabold mb-6'>Built entirely by AI.</h1><p class='text-xl text-indigo-200 mb-8 max-w-2xl mx-auto'>This platform is continuously self-improving through an autonomous loop.</p><button class='bg-white text-indigo-900 px-8 py-3 rounded-full font-bold shadow-xl hover:scale-105 transition-transform'>Get Started</button></div>",
+                            next_recommended_step: "Next, I will add a Footer component to complete the page structure."
+                        };
+                    } else {
+                        mockResponse = {
+                            target_file: "components/Footer.html",
+                            action: "CREATE",
+                            code: "<footer class='bg-gray-950 p-6 text-center text-gray-500 text-sm mt-auto w-full'>&copy; 2026 AI Autonomous Builder. All rights reserved.</footer>",
+                            next_recommended_step: "The base layout is complete. Let's add some JavaScript logic to animate the Hero section."
+                        };
                     }
-                }
-
-                return generatedText;
-
-            } catch (err) {
-                if (err.name === 'AbortError' || err.message === "Execution canceled.") {
-                    throw new Error("Execution canceled.");
-                }
-                if (retryCount < maxRetries && (err.message.includes("503") || err.message.includes("fetch"))) {
-                    const delay = baseDelay * Math.pow(2, retryCount);
-                    pushSystemLog("Socket Terminated", `Temporary socket disconnect. Retrying request block in ${(delay / 1000).toFixed(1)}s...`, "rose-400");
-                    await sleep(delay);
-                    return await robustAPIRequest(promptObj, systemInstructionText, retryCount + 1);
-                }
-                throw err;
-            }
-        }
-
-        function updateUIActiveAgent(agentId) {
-            document.querySelectorAll('.status-dot').forEach(dot => {
-                dot.className = "w-1.5 h-1.5 bg-slate-800 rounded-full mx-auto mt-1.5 status-dot";
-                dot.parentElement.classList.remove('active-agent');
-            });
-            const target = document.getElementById(`agent-${agentId}`);
-            if (target) {
-                target.classList.add('active-agent');
-                const dot = target.querySelector('.status-dot');
-                dot.className = "w-1.5 h-1.5 bg-purple-400 rounded-full mx-auto mt-1.5 status-dot";
-            }
-        }
-
-        function stopUIActiveAgents() {
-            document.querySelectorAll('.status-dot').forEach(dot => {
-                dot.className = "w-1.5 h-1.5 bg-slate-800 rounded-full mx-auto mt-1.5 status-dot";
-                dot.parentElement.classList.remove('active-agent');
+                    resolve(JSON.stringify(mockResponse));
+                }, 1500); // 1.5 second simulated API delay
             });
         }
 
-        function startTimer() {
-            state.elapsedSeconds = 0;
-            elements.timerLabel.innerText = "00:00";
-            state.timerInterval = setInterval(() => {
-                state.elapsedSeconds++;
-                const mins = Math.floor(state.elapsedSeconds / 60).toString().padStart(2, '0');
-                const secs = (state.elapsedSeconds % 60).toString().padStart(2, '0');
-                elements.timerLabel.innerText = `${mins}:${secs}`;
-            }, 1000);
-        }
-
-        function stopTimer() {
-            clearInterval(state.timerInterval);
-        }
-
-        // Structural System Personas (UPDATED WITH TOKEN EFFICIENCY RULES)
-        const AGENT_SYSTEM_PROMPTS = {
-            1: `You are the Architect Agent. Your objective is to design the functional specification, data schema structure, and layout design profiles for complex single-file web interfaces. Rely on responsive Tailwind utility frameworks, FontAwesome graphical vectors, and native vanilla ES6. Ensure your design blueprint contains zero wrapper code blocks. CRITICAL FOR TOKEN EFFICIENCY: Never hardcode repetitive UI elements. Design blueprints that use a single HTML template and JavaScript mock data arrays to render lists/grids dynamically.`,
-            2: `You are the Critical Inspector/Auditor. Your task is to critique the target codebase. Highlight rendering bugs, accessibility vulnerabilities, performance limitations, structural state issues, memory leak traces, and responsive design flaws, particularly on mobile viewports. Output your diagnosis as a concise, high-impact checklist within a structured markdown block.`,
-            3: `You are the Logic Repair Agent. Your objective is to resolve logic issues highlighted by the Auditor. You must carefully modify variables, secure state routines, eliminate scope errors, and preserve state logic across DOM updates. CRITICAL: Provide ONLY the updated, runnable single-file HTML codebase. NEVER truncate the code. NEVER use placeholders like "<!-- rest of code -->". You must return the file in full from <!DOCTYPE html> to </html>.`,
-            4: `You are the Polish & Experience Enhancer. Inject refined visual design details: micro-interactions, smooth CSS animations, dark/light contrast support, responsive touch-gesture event listeners, beautiful validation feedback triggers, and robust asset fallbacks. CRITICAL: Provide ONLY the complete updated source code. NEVER truncate. Return the entire document from start to finish.`,
-            5: `You are the Master Compiler. Clean all dev notes, secure asset paths, check syntax parameters, optimize performance profiles, and format script loops cleanly. CRITICAL: Return ONLY the finalized production-grade single-file HTML code. You must output the entire, complete file ending with </html>. Do not truncate. CRITICAL FOR TOKEN EFFICIENCY: Ensure you are using JS loops/maps to render repetitive elements instead of hardcoding HTML blocks.`
-        };
-
-        // Main Synthesis Pipeline Loop
-        async function startPipeline() {
-            if (state.isRunning) return;
-
-            state.keys = getAPIKeyPool();
-            if (state.keys.length === 0) {
-                triggerToast("Add at least one Gemini key in settings first", "error");
-                toggleSettings();
-                return;
-            }
-
-            const promptSpec = elements.promptInput.value.trim();
-            if (!promptSpec || promptSpec.length < 10) {
-                triggerToast("Please provide a detailed specification (minimum 10 characters).", "warn");
-                return;
-            }
-
-            saveToLocalStorage();
-            state.isRunning = true;
-            state.currentPass = 0;
-            state.thinkingLevel = parseInt(elements.thinkingLevel.value);
-            state.pacingDelay = parseInt(elements.pacingDelay.value);
-            state.model = elements.modelSelect.value;
-            state.abortController = new AbortController();
-
-            elements.runPipelineBtn.disabled = true;
-            elements.runPipelineBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            elements.abortBtn.disabled = false;
-            elements.abortBtn.classList.remove('cursor-not-allowed', 'text-slate-500');
-            elements.abortBtn.classList.add('bg-rose-950/20', 'text-rose-400', 'border-rose-500/20');
-            elements.externalPreviewBtn.classList.add('hidden');
-            
-            elements.progressMetricPanel.classList.remove('hidden');
-            elements.terminalContainer.innerHTML = '';
-            
-            startTimer();
-            switchTab('terminal');
-
-            pushSystemLog("System Loop Initialization", `Engaging Synthesis Pipeline using model: ${state.model}. Launching ${state.thinkingLevel} deep synthesis sweeps...`, "purple-400");
-            
-            // Ensure thread keep-awake holds during long logic iterations
-            if (!state.wakeLockActive) {
-                toggleWakeLock();
-            }
-
-            try {
-                let workingSourceCode = "";
-                let auditFeedbackLogs = "";
-
-                // Pass 1: Architecture blueprint design phase
-                state.currentPass = 1;
-                updateProgressBar();
-                elements.currentProcessLabel.innerText = "Architect drafting blueprint...";
-                updateUIActiveAgent(1);
-                
-                pushSystemLog("Architect [Pass 1]", `Designing specification structure for: "${promptSpec.substring(0, 100)}..."`, "purple-400");
-                
-                const architectBlueprint = await robustAPIRequest(
-                    `Prompt Context: ${promptSpec}. Design a modern, robust, single-file HTML layout blueprint. Outline state mechanisms, structural element scopes, and dynamic actions.`, 
-                    AGENT_SYSTEM_PROMPTS[1]
-                );
-                
-                pushSystemLog("Architect Assembly Specifications", architectBlueprint, "purple-300");
-                
-                await paceSleep();
-
-                // Pass 2: Base layout development phase
-                state.currentPass = 2;
-                updateProgressBar();
-                elements.currentProcessLabel.innerText = "Polisher building baseline code...";
-                updateUIActiveAgent(5);
-                
-                pushSystemLog("Polisher Core Build [Pass 2]", "Assembling functional base file structure...", "indigo-400");
-                
-                let initialRaw = await robustAPIRequest(
-                    `Architect Profile:\n${architectBlueprint}\n\nUser Request Spec: ${promptSpec}. Assemble a fully working base file structure containing styles, modules, and structures. Output raw code only.`, 
-                    AGENT_SYSTEM_PROMPTS[5]
-                );
-                
-                workingSourceCode = sanitizeMarkdownCodeBlocks(initialRaw);
-                updateSourceCodePanel(workingSourceCode);
-                pushSystemLog("Base Build Successful", `Footprint metrics: ${(workingSourceCode.length / 1024).toFixed(2)} KB. Advancing to analysis and logic loops.`, "emerald-400");
-
-                // Iterative logic, optimization, and refinement sweeps (Pass 3 to N-1)
-                let cycleIndex = 0;
-                while (state.currentPass < state.thinkingLevel - 1) {
-                    if (state.abortController.signal.aborted) throw new Error("Execution canceled.");
-                    
-                    await paceSleep();
-                    state.currentPass++;
-                    updateProgressBar();
-
-                    const currentAgentMode = (cycleIndex % 3) + 2; // Iterates through Auditor (2), Logic Fixer (3), Enhancer (4)
-                    cycleIndex++;
-
-                    if (currentAgentMode === 2) {
-                        elements.currentProcessLabel.innerText = `Auditor inspecting pass ${state.currentPass}...`;
-                        updateUIActiveAgent(2);
-                        pushSystemLog(`Auditor Diagnostic Sweep [Pass ${state.currentPass}/${state.thinkingLevel}]`, `Analyzing current codebase: ${(workingSourceCode.length / 1024).toFixed(2)} KB...`, "amber-400");
-
-                        auditFeedbackLogs = await robustAPIRequest(
-                            `Inspect this raw file carefully. Analyze security bugs, accessibility parameters, rendering bottlenecks, or layout leaks. Write down a concrete repair task checklist:\n\n${workingSourceCode}`,
-                            AGENT_SYSTEM_PROMPTS[2]
-                        );
-                        pushSystemLog(`Auditor Diagnostics Log Report`, auditFeedbackLogs, "amber-300");
-
-                    } else if (currentAgentMode === 3) {
-                        elements.currentProcessLabel.innerText = `Fixer repairing pass ${state.currentPass}...`;
-                        updateUIActiveAgent(3);
-                        pushSystemLog(`Logic Fixer Refactoring [Pass ${state.currentPass}/${state.thinkingLevel}]`, `Recompiling variables and securing scripts against feedback checklist...`, "purple-400");
-
-                        let fixerRaw = await robustAPIRequest(
-                            `Review the auditor diagnostic findings:\n${auditFeedbackLogs}\n\nRepair all logic bugs, ensure data is persistent, and keep styling layouts robust. Return the complete code without truncation:\n\n${workingSourceCode}`,
-                            AGENT_SYSTEM_PROMPTS[3]
-                        );
-                        workingSourceCode = sanitizeMarkdownCodeBlocks(fixerRaw);
-                        updateSourceCodePanel(workingSourceCode);
-                        pushSystemLog(`Logic Fix Patch Integrated`, "Operational integrity checks verified.", "emerald-400");
-
-                    } else if (currentAgentMode === 4) {
-                        elements.currentProcessLabel.innerText = `Enhancer upgrading UI pass ${state.currentPass}...`;
-                        updateUIActiveAgent(4);
-                        pushSystemLog(`Experience Enhancer Upgrades [Pass ${state.currentPass}/${state.thinkingLevel}]`, `Injecting animations, mobile gestures, and responsive viewports...`, "violet-400");
-
-                        let enhancerRaw = await robustAPIRequest(
-                            `Inject premium visual micro-animations, layout styling updates, transitions, and user interaction enhancements. Maintain existing features. Output ONLY complete updated HTML source code:\n\n${workingSourceCode}`,
-                            AGENT_SYSTEM_PROMPTS[4]
-                        );
-                        workingSourceCode = sanitizeMarkdownCodeBlocks(enhancerRaw);
-                        updateSourceCodePanel(workingSourceCode);
-                        pushSystemLog(`Enhancement Patch Injected`, "Visual transitions and responsive controls optimized.", "violet-300");
-                    }
-                }
-
-                // Final Pass: Optimization, minification, and output phase
-                await paceSleep();
-                state.currentPass = state.thinkingLevel;
-                updateProgressBar();
-                elements.currentProcessLabel.innerText = "Master Polisher finalizing compilation...";
-                updateUIActiveAgent(5);
-                pushSystemLog(`Polisher Compilation Final Pass [Pass ${state.thinkingLevel}/${state.thinkingLevel}]`, "Performing structural optimization, code formatting, asset path validation, and system exports...", "emerald-400");
-
-                const finalizedCodeRaw = await robustAPIRequest(
-                    `Perform a comprehensive cleanup of the code. Ensure external script tags (Tailwind, FontAwesome, etc.) are valid and placed in the correct hierarchy. Ensure zero markdown tags wrapper formatting exists in output. Output raw valid code only:\n\n${workingSourceCode}`,
-                    AGENT_SYSTEM_PROMPTS[5]
-                );
-
-                const finalizedCode = sanitizeMarkdownCodeBlocks(finalizedCodeRaw);
-
-                updateSourceCodePanel(finalizedCode);
-                renderPreview(finalizedCode);
-                
-                pushSystemLog("PROD BUILD COMPILED SUCCESSFULLY", `Compilation completed: ${(finalizedCode.length / 1024).toFixed(2)} KB total payload scale. Ready to deploy.`, "emerald-400");
-                triggerToast("Application Build Success!", "success");
-                
-                triggerChime();
-                sendSuccessNotification();
-                elements.externalPreviewBtn.classList.remove('hidden');
-                switchTab('preview');
-
-            } catch (error) {
-                if (error.message === "Execution canceled.") {
-                    pushSystemLog("System Loop Terminated", "Pipeline execution halted by user request.", "amber-400");
-                    triggerToast("Pipeline loop terminated", "warn");
-                } else {
-                    pushSystemLog("Fatal Pipeline Failure", error.message, "rose-500");
-                    triggerToast("Build Pipeline Failed", "error");
-                    console.error("Pipeline failure traceback: ", error);
-                }
-            } finally {
-                stopTimer();
-                stopUIActiveAgents();
-                state.isRunning = false;
-                elements.runPipelineBtn.disabled = false;
-                elements.runPipelineBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                elements.abortBtn.disabled = true;
-                elements.abortBtn.classList.add('cursor-not-allowed', 'text-slate-500');
-                elements.abortBtn.classList.remove('bg-rose-950/20', 'text-rose-400', 'border-rose-500/20');
-                elements.currentProcessLabel.innerText = "System Idle";
-                releaseKeepAlive();
-            }
-        }
-
-        async function paceSleep() {
-            if (state.pacingDelay > 0) {
-                elements.currentProcessLabel.innerText = `Pacing delay cooling (${state.pacingDelay}s)...`;
-                await sleep(state.pacingDelay * 1000);
-            }
-        }
-
-        function abortPipeline() {
-            if (!state.isRunning) return;
-            if (confirm("Halt the active compilation loop? Current progress will be suspended.")) {
-                state.abortController.abort();
-                pushSystemLog("System Intervention", "Abort signal dispatched to active threads...", "rose-400");
-            }
-        }
-
-        function updateProgressBar() {
-            const percent = (state.currentPass / state.thinkingLevel) * 100;
-            elements.globalProgressBar.style.width = `${percent}%`;
-            elements.passCounter.innerText = `${state.currentPass}/${state.thinkingLevel}`;
-        }
-
-        function updateSourceCodePanel(code) {
-            state.pipelineOutput = code;
-            elements.codeViewer.textContent = code;
-            elements.codeSizeLabel.innerText = `${(code.length / 1024).toFixed(2)} KB`;
-            
-            // Defer parsing payload token highlighting for fluid rendering
-            setTimeout(() => {
-                if (typeof hljs !== 'undefined') {
-                    hljs.highlightElement(elements.codeViewer);
-                }
-            }, 50);
-        }
-
-        function renderPreview(code) {
-            const iframe = elements.previewIframe;
-            iframe.srcdoc = code;
-        }
-
-        // Sandboxed blob preview creation
-        function openExternalPreview() {
-            if (!state.pipelineOutput) {
-                triggerToast("Compile an app profile first", "warn");
-                return;
-            }
-            try {
-                const blob = new Blob([state.pipelineOutput], { type: 'text/html;charset=utf-8' });
-                const blobUrl = URL.createObjectURL(blob);
-                const newTab = window.open(blobUrl, '_blank');
-                if (!newTab) {
-                    throw new Error("Popups blocked by current viewport.");
-                }
-            } catch(err) {
-                const newTab = window.open();
-                if (newTab) {
-                    newTab.document.write(state.pipelineOutput);
-                    newTab.document.close();
-                } else {
-                    triggerToast("Direct window blocked. Allow site popups.", "warn");
-                }
-            }
-        }
-
-        // Safe code extraction heuristic
-        function sanitizeMarkdownCodeBlocks(rawText) {
-            let processed = rawText.trim();
-            const codeBlockPattern = /```(?:html|xml|javascript|css)?([\s\S]*?)```/gi;
-            const matches = [...processed.matchAll(codeBlockPattern)];
-            
-            if (matches.length > 0) {
-                let largestBlock = "";
-                for (const match of matches) {
-                    if (match[1].length > largestBlock.length) {
-                        largestBlock = match[1];
-                    }
-                }
-                return largestBlock.trim();
-            }
-            
-            // Fallback: Smart HTML extraction even if </html> is missing
-            const startIndex = processed.toLowerCase().indexOf("<html");
-            if (startIndex !== -1) {
-                const endIndex = processed.toLowerCase().lastIndexOf("</html>");
-                if (endIndex !== -1) {
-                    // Perfect extraction
-                    return processed.substring(startIndex, endIndex + 7);
-                } else {
-                    // The code was cut off by the AI! 
-                    // Return everything from <html to the end so it doesn't render conversational text
-                    return processed.substring(startIndex) + "\n<!-- WARNING: Code was truncated by AI limits -->";
-                }
-            }
-            
-            return processed;
-        }
-
-        function copySourceCode() {
-            if (!state.pipelineOutput) {
-                triggerToast("No source code compilation payload", "warn");
-                return;
-            }
-            navigator.clipboard.writeText(state.pipelineOutput)
-                .then(() => triggerToast("Source copied to clipboard", "success"))
-                .catch(() => triggerToast("Copy failed. Try manual copy from Source tab.", "error"));
-        }
-
-        function downloadCode() {
-            if (!state.pipelineOutput) {
-                triggerToast("No code artifact to download", "warn");
-                return;
-            }
-            const blob = new Blob([state.pipelineOutput], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `autonomous_app_${Date.now()}.html`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            triggerToast("Artifact download initiated", "success");
-        }
+        // Initialize UI on load
+        updateFileTreeUI();
+        renderLivePreview();
+        document.getElementById('codeInspector').value = virtualFileSystem["index.html"];
     </script>
 </body>
 </html>
